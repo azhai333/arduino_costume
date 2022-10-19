@@ -509,7 +509,7 @@ class Tetris
     tetrisTimeLastUpdated = millis()/1000.0;   
     controllerTimeLastUpdated = millis()/1000.0;
 
-    currShape = "o";
+    currShape = "t";
     orientation = 1;
     prevOrientation = 1;
     width = 1;
@@ -1335,24 +1335,64 @@ class Tetris
         }           
       }
     } else if (currShape == "o") {
-        width = 1;
+      width = 1;
+      leftAdj = 0;
+      height = 2;
+
+      if (lineY != prevLineY) {
+        if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+          lineY += 1;
+          landed = true;          
+        }
+      } 
+      
+      if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0) {
+        if (lineX != prevLineX) {
+          lineX = prevLineX;
+          currLineX = prevLineX; 
+        }  else if (!landed) {
+          checked=0;
+          while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+            if (checked == 0) {
+              lineY -= 1;           
+            } else if (checked == 1) {
+              lineY += 1;
+              lineX += 1;
+            } else if (checked == 2) {
+              lineX -= 2;       
+            } else if (checked == 3) {
+              lineX -= 1;
+            } else if (checked == 4) {
+              lineX += 4;
+            } else if (checked == 5) {
+              lineX -= 2;
+              orientation = prevOrientation;
+              break;
+            }
+            checked += 1;              
+          }
+        }
+      }         
+    } else if (currShape == "s") {
+      if (orientation == 1) {
+        width = 2;
         leftAdj = 0;
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
-        if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0) {
+        if (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0) {
           if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
-            while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+            while (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
                 lineY -= 1;           
               } else if (checked == 1) {
@@ -1372,9 +1412,285 @@ class Tetris
               checked += 1;              
             }
           }
-        }         
+        }    
+      } else if (orientation == 2) {
+        width = 1;
+        leftAdj = 0;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+            while (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+              if (checked == 0) {
+                lineY -= 1;           
+              } else if (checked == 1) {
+                lineY += 1;
+                lineX += 1;
+              } else if (checked == 2) {
+                lineX -= 2;       
+              } else if (checked == 3) {
+                lineX -= 1;
+              } else if (checked == 4) {
+                lineX += 4;
+              } else if (checked == 5) {
+                lineX -= 2;
+                orientation = prevOrientation;
+                break;
+              }
+              checked += 1;              
+            }
+          }
+        }          
+      } else if (orientation == 3) {
+        width = 2;
+        leftAdj = 0;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+            while (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+              if (checked == 0) {
+                lineY -= 1;           
+              } else if (checked == 1) {
+                lineY += 1;
+                lineX += 1;
+              } else if (checked == 2) {
+                lineX -= 2;       
+              } else if (checked == 3) {
+                lineX -= 1;
+              } else if (checked == 4) {
+                lineX += 4;
+              } else if (checked == 5) {
+                lineX -= 2;
+                orientation = prevOrientation;
+                break;
+              }
+              checked += 1;              
+            }
+          }
+        }          
+      } else {
+        width = 2;
+        leftAdj = -1;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+            while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+              if (checked == 0) {
+                lineY -= 1;           
+              } else if (checked == 1) {
+                lineY += 1;
+                lineX += 1;
+              } else if (checked == 2) {
+                lineX -= 2;       
+              } else if (checked == 3) {
+                lineX -= 1;
+              } else if (checked == 4) {
+                lineX += 4;
+              } else if (checked == 5) {
+                lineX -= 2;
+                orientation = prevOrientation;
+                break;
+              }
+              checked += 1;              
+            }
+          }
+        }          
+      }
+    } else if (currShape == "t") {
+      if (orientation == 1) {
+        width = 2;
+        leftAdj = 0;
+        height = 1;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+              while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+                if (checked == 0) {
+                  lineY -= 1;           
+                } else if (checked == 1) {
+                  lineY += 1;
+                  lineX += 1;
+                } else if (checked == 2) {
+                  lineX -= 2;       
+                } else if (checked == 3) {
+                  lineX -= 1;
+                } else if (checked == 4) {
+                  lineX += 4;
+                } else if (checked == 5) {
+                  lineX -= 2;
+                  orientation = prevOrientation;
+                  break;
+                }
+                checked += 1;              
+              }
+            }
+          }            
+      } else if (orientation == 2) {
+        width = 1;
+        leftAdj = 0;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+              while (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+                if (checked == 0) {
+                  lineY -= 1;           
+                } else if (checked == 1) {
+                  lineY += 1;
+                  lineX += 1;
+                } else if (checked == 2) {
+                  lineX -= 2;       
+                } else if (checked == 3) {
+                  lineX -= 1;
+                } else if (checked == 4) {
+                  lineX += 4;
+                } else if (checked == 5) {
+                  lineX -= 2;
+                  orientation = prevOrientation;
+                  break;
+                }
+                checked += 1;              
+              }
+            }
+          }             
+      } else if (orientation == 3) {
+        width = 2;
+        leftAdj = 0;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+              while (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+                if (checked == 0) {
+                  lineY -= 1;           
+                } else if (checked == 1) {
+                  lineY += 1;
+                  lineX += 1;
+                } else if (checked == 2) {
+                  lineX -= 2;       
+                } else if (checked == 3) {
+                  lineX -= 1;
+                } else if (checked == 4) {
+                  lineX += 4;
+                } else if (checked == 5) {
+                  lineX -= 2;
+                  orientation = prevOrientation;
+                  break;
+                }
+                checked += 1;              
+              }
+            }
+          }            
+      } else {
+        width = 2;
+        leftAdj = -1;
+        height = 2;
+
+        if (lineY != prevLineY) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0) {
+            lineY += 1;
+            landed = true;          
+          }
+        } 
+        
+        if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
+          if (lineX != prevLineX) {
+            lineX = prevLineX;
+            currLineX = prevLineX; 
+          }  else if (!landed) {
+            checked=0;
+              while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
+                if (checked == 0) {
+                  lineY -= 1;           
+                } else if (checked == 1) {
+                  lineY += 1;
+                  lineX += 1;
+                } else if (checked == 2) {
+                  lineX -= 2;       
+                } else if (checked == 3) {
+                  lineX -= 1;
+                } else if (checked == 4) {
+                  lineX += 4;
+                } else if (checked == 5) {
+                  lineX -= 2;
+                  orientation = prevOrientation;
+                  break;
+                }
+                checked += 1;              
+              }
+            }
+          }            
+      }
     }
-  }
+  };
 
   void drawI() {
     if (orientation == 1) {
@@ -1569,6 +1885,10 @@ class Tetris
   
   void drawS() {
     if (orientation == 1) {
+      width = 2;
+      leftAdj = 0;
+      height = 2;
+
       for (int i = lineX; i < lineX+2; i++) {
         grid[lineY][i] = 6;
       }
@@ -1577,14 +1897,22 @@ class Tetris
         grid[lineY-1][i] = 6;
       }
     } else if (orientation == 2) {
+      width = 1;
+      leftAdj = 0;
+      height = 2;
+
       for (int i = lineY; i > lineY-2; i--) {
-        grid[i][lineX+1] = 3;
+        grid[i][lineX+1] = 6;
       }  
 
       for (int i = lineY-1; i > lineY-3; i--) {
-        grid[i][lineX] = 3;
+        grid[i][lineX] = 6;
       }      
     } else if (orientation == 3) {
+      width = 2;
+      leftAdj = 0;
+      height = 2;
+
       for (int i = lineX; i < lineX+2; i++) {
         grid[lineY-1][i] = 6;
       }
@@ -1593,6 +1921,10 @@ class Tetris
         grid[lineY-2][i] = 6;
       }
     } else {
+      width = 2;
+      leftAdj = -1;
+      height = 2;
+
       for (int i = lineY; i > lineY-2; i--) {
         grid[i][lineX+2] = 6;
       }  
@@ -1602,7 +1934,7 @@ class Tetris
       }   
     }
 
-  };    
+  };      
   
   void drawT() {
     if (orientation == 1) {
