@@ -2,21 +2,21 @@
  *  Encoder --> Arduino
  *  GND --> GND
  *  VCC --> 5V
- *  SW --> IO14
+ *  SW --> IO17
  *  DT --> IO27
  *  CLK --> IO26
  *  
  *  Joystick --> Arduino
  *  GND --> GND
  *  +5V --> 5V
- *  VRX --> IO32
+ *  VRX --> IO25
  *  VRY --> IO33
- *  SW --> IO25
+ *  SW --> IO32
  *  
  *  Matrix --> Arduino (orient the matrix so that you are looking at the back of the panel with the writing on it)
  *  Top Left 5V --> 5V
  *  Top Left GND --> GND```````````
- *  Top Right DIN --> IO12
+ *  Top Right DIN --> IO13
  *  
  *  Matrix --> Matrix
  *  Top Left DOUT --> Bottom Right DIN
@@ -32,11 +32,16 @@
 #include <Fonts/Picopixel.h>
 
 //Inputs:
-#define SW 25 //Joystick button
+#define SW 32 //Joystick button
 #define potX 25 //oystick X
 #define potY 33 //Joystick Y
 
 //#define twist A1 //Potentiometer
+
+#define ASW 16
+#define BSW 17
+#define XSW 18
+#define YSW 19
 
 #define rotSW 17 //Rotary encoder button 14
 //Initialize encoder on digital pins 2 (clock) and 3 (DT)
@@ -46,6 +51,8 @@ Encoder myEnc(26, 27);
 //Define Matrix
 #define NUMROWS 16
 #define NUMCOLS 16
+
+
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
   NEO_MATRIX_TOP + NEO_MATRIX_LEFT +
@@ -61,11 +68,17 @@ void setup() {
   pinMode(potX, INPUT_PULLUP);
   pinMode(potY, INPUT_PULLUP);
   //pinMode(twist, INPUT);
-  delay(300);
-
+  delay(500);
 }
 
 String game = "None";
+
+int triX1 = 6;
+int triY1 = 8;
+int triX2 = 5;
+int triY2 = 7;
+int triX3 = 5;
+int triY3 = 9;
 
 class Pipe
 {
@@ -218,13 +231,6 @@ class FlappyBird
   int rotSWstate;
   int xState;
   int yState;
-
-  int triX1;
-  int triY1;
-  int triX2;
-  int triY2;
-  int triX3;
-  int triY3;
   
   bool startGame;  
   bool isOver;
@@ -269,7 +275,7 @@ class FlappyBird
       }
       matrix.show();
     } else {
-      gameOver();
+      flapGameOver();
     }
   }
 
@@ -313,7 +319,7 @@ class FlappyBird
     startGame = false;
   }
 
-  void gameOver() {
+  void flapGameOver() {
     if (gameBird.dotY > 1) {
       for (int i = 0; i < numPipes; i++) {
         pipes[i].drawPipe();
@@ -452,9 +458,9 @@ String menu() {
 class Tetris
 {
   public:
-  int grid[16][10] = { {0,0,1,5,5,0,0,0,0,0},{0,0,1,5,5,0,0,0,0,0},{0,0,1,5,5,0,0,0,0,0},
-                     {0,0,1,5,5,0,0,0,0,0},{0,0,1,5,5,0,0,0,0,0},{0,0,1,5,5,0,0,0,0,0},
-                     {0,0,1,5,5,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+  int grid[16][10] = { {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0}};  
@@ -465,7 +471,9 @@ class Tetris
   int prevRow4[10] = {0,0,0,0,0,0,0,0,0,0};
   int prevRow5[10] = {0,0,0,0,0,0,0,0,0,0};
 
-    
+  int shapeOrder[7] = {0,1,2,3,4,5,6};
+  String shapeList[7] = {"i","j","l","t","o","z","s"};
+
   float currLineX;
   int lineX;
   int prevLineX;
@@ -496,10 +504,30 @@ class Tetris
 
   bool landed;
 
+  int rand1;
+  int rand2;
+  int temp;
+  
+  int tetrisRows[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  bool hasTetris;
+  bool tetrisMode;
+  int tetrisStart;
+  int tetrisEnd;
+
+  int shapePointer;
+
+  int tetrisAnimPointer;
+
+  bool isOver;
+
+  int spawnX;
+
   Tetris() {
-    lineX = 4;
+    lineX = random(0,9);
+    spawnX = lineX;
+    // lineX = 8;
     currLineX = lineX;
-    prevLineX = 0;
+    prevLineX = lineX;
 
     checked = 0;
 
@@ -509,24 +537,99 @@ class Tetris
     tetrisTimeLastUpdated = millis()/1000.0;   
     controllerTimeLastUpdated = millis()/1000.0;
 
-    currShape = "t";
+    shapePointer = 1;
+
+    shuffleShapes();
+
+    currShape = shapeList[shapeOrder[0]];
+    // currShape = "i";
+    // orientation = random(1,5);
     orientation = 1;
-    prevOrientation = 1;
+    if (currShape == "i") {
+      if ((orientation == 2 || orientation == 4)) {
+        currLineY -= 1;
+        lineY -= 1;
+        prevLineY = lineY;
+      }
+
+      lineX = 4;
+      spawnX = lineX;
+      currLineX = lineX;
+      prevLineX = lineX;
+      
+      // if (orientation == 1 && lineX == 8) {
+      //   lineX -= 2;
+      //   currLineX = lineX;
+      //   prevLineX = lineX;
+      // }
+    } else if (currShape == "z" && orientation == 1 && lineX == 8) {
+      lineX -=1;
+      currLineX = lineX;
+      prevLineX = lineX;
+    }
+
+    prevOrientation = orientation;
     width = 1;
     leftAdj = 0;
     height = 4;
 
-    fallSpeed = 0.5;
-    fastFallSpeed = 5;
+    fallSpeed = 1;
+    fastFallSpeed = 15;
 
     currFallSpeed = fallSpeed;
 
     landed = false;
     
     xState = map(analogRead(potX), 0, 4095, 0, 100);
-    prevXState = xState;
     yState = map(analogRead(potY), 0, 4095, 0, 100);
+    prevXState = xState;
     prevYState = xState; 
+
+    hasTetris = false;
+    tetrisMode = false;
+    tetrisStart = -1;
+    tetrisEnd = -1;
+    tetrisAnimPointer = 0;
+
+    isOver = false;
+  }
+
+  void resetTetris() {
+    for (int i = 0; i < 16; i++) {
+      for (int j = 0; j < 10; j++) {
+        grid[i][j] = 0;
+      }
+    }
+
+    fallSpeed = 1;
+    fastFallSpeed = 15;
+
+    currFallSpeed = fallSpeed;
+    
+    currLineY = 15;
+    lineY = 15;
+    prevLineY = lineY;
+
+    spawnPiece();
+    isOver = false;
+    matrix.setRotation(0);
+
+    tetrisTimeLastUpdated = millis()/1000.0;
+  }
+
+  void shuffleShapes() {
+    for (int i = 0; i < 100; i++) {
+      rand1 = random(0,7);
+      rand2 = random(0,7);
+      
+      while (rand1 == rand2) {
+        rand2 = random(0,7);
+      }
+      
+      temp = shapeOrder[rand1];
+      shapeOrder[rand1] = shapeOrder[rand2];
+      shapeOrder[rand2] = temp;
+    }   
   }
 
   void drawGrid() {
@@ -552,14 +655,326 @@ class Tetris
     }
   };
 
+  void spawnPiece() {
+    lineX = random(0,9);
+    spawnX = lineX;
+    currLineX = lineX;
+    prevLineX = 0;
+
+    currLineY = 15;
+    lineY = 15;
+    prevLineY = lineY;
+
+    orientation = random(1,5);
+    // orientation = 2;
+    prevOrientation = orientation;
+
+    currShape = shapeList[shapeOrder[shapePointer]];
+    // currShape = "i";
+    if (currShape == "i") {
+      if (orientation == 4) {
+        orientation = 2;
+      }
+      if (orientation == 2) {
+        currLineY -= 1;
+        lineY -= 1;
+        prevLineY = lineY;
+        Serial.println("adjustY");
+        Serial.println("lineY");
+      }
+
+      lineX = 4;
+      spawnX = lineX;
+      currLineX = lineX;
+      prevLineX = lineX;
+
+      // if (orientation == 1 && lineX == 8) {
+      //   lineX -= 2;
+      //   currLineX = lineX;
+      //   prevLineX = lineX;
+      // }
+      // if (orientation == 4 && lineX == 0) {
+      //   lineX += 1;
+      //   currLineX = lineX;
+      //   prevLineX = lineX;
+      // }
+    } else if (currShape == "z" && orientation == 1 && lineX == 8) {
+      lineX -=1;
+      currLineX = lineX;
+      prevLineX = lineX;
+    }
+
+    shapePointer += 1;
+    // width = 1;
+    // leftAdj = 0;
+    // height = 4;
+
+    if (shapePointer == 7) {
+      shuffleShapes();
+      shapePointer = 0;      
+    }
+
+    landed = false;
+
+    detectCollision(true);
+  }
+
+  void checkTetris() {
+    for (int i = 0; i < 16; i++) {
+      hasTetris = true;
+      for (int j = 0; j < 10; j++) { 
+        if (grid[i][j] == 0) {
+          hasTetris = false;
+        }
+      }
+      if (hasTetris) {
+        tetrisRows[i] = 1;   
+        tetrisMode = true;
+
+        if (tetrisStart == -1) {
+          tetrisStart = i;
+        }
+      } else if (!hasTetris && tetrisStart != -1) {
+        tetrisEnd = i;
+        break;
+      }
+    }    
+  }
+
+  void tetrisAnimation() {
+    for (int i = 0; i < 16; i++) {
+      if (tetrisRows[i] == 1) {
+        grid[i][tetrisAnimPointer] = 0;
+      }
+    }
+    
+    tetrisAnimPointer += 1;
+    
+    if (tetrisAnimPointer == 10) {
+      tetrisMode = false;
+      tetrisAnimPointer = 0;
+
+      for (int i = 0; i < 16; i++) {  
+        tetrisRows[i] = 0;
+      }  
+      
+      for (int i = 0; i < 16-tetrisEnd; i++) {
+        for (int j = 0; j < 10; j++) {
+          grid[tetrisStart+i][j] = grid[tetrisEnd+i][j];          
+        }      
+      }
+
+      tetrisStart = -1;
+      tetrisEnd = -1;
+    }
+  }
+
+  void gameOver() {
+    matrix.setFont(&Picopixel);
+    matrix.setRotation(2);
+
+    matrix.setCursor(2, 4);
+    matrix.setTextColor(matrix.Color(150,0,0));
+    //void setTextWrap(boolean w);      
+    matrix.print("End");
+
+    matrix.setCursor(7,9);
+    matrix.print("r");
+    matrix.setCursor(5,14);
+    matrix.print("m");    
+    
+    if (yState == 0 && triY1 == 8) {
+      triX1 = 4;
+      triY1 = 13;
+      triX2 = 3;
+      triY2 = 12;
+      triX3 = 3;
+      triY3 = 14;
+    } else if (yState == 100 && triY1 == 13) {
+      triX1 = 6;
+      triY1 = 8;
+      triX2 = 5;
+      triY2 = 7;
+      triX3 = 5;
+      triY3 = 9;
+    }
+
+    if (rotSWstate == 0 && triY1 == 8) {
+      resetTetris();
+    } else if (rotSWstate == 0 && triY1 == 13) {
+      game = "None";
+      delay(300);
+    }
+    
+    matrix.fillTriangle(triX1,triY1,triX2,triY2,triX3,triY3,matrix.Color(0,0,150));
+    
+    matrix.show();
+    matrix.fillScreen(0);    
+  }
+
   void mainGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     yState = map(analogRead(potY), 0, 4095, 0, 100);
     
-    if (!landed) {
-      currLineY -= currFallSpeed * (millis()/1000.0 - tetrisTimeLastUpdated);
-      lineY = round(currLineY);
+    if (!isOver) {
+      if (!landed) {
+        currLineY -= currFallSpeed * (millis()/1000.0 - tetrisTimeLastUpdated);
+        lineY = round(currLineY);
+      }
 
+        if (lineY < prevLineY-1) {
+          lineY += 1;
+        }
+      
+      if (xState == 0 && lineX+width < 9 && !landed) {
+        if (prevXState != 0) {  
+          lineX += 1;        
+        } else {
+          currLineX += 5 * (millis()/1000.0 - controllerTimeLastUpdated);    
+          lineX = round(currLineX);  
+
+          if (lineX < prevLineX) {
+            lineX = prevLineX;
+          }
+        }     
+      } else if (xState == 100 && lineX-leftAdj > 0 && !landed) {
+        if (prevXState != 100) {  
+          lineX -= 1;        
+        } else {
+          currLineX -= 5 * (millis()/1000.0 - controllerTimeLastUpdated);
+          lineX = round(currLineX);    
+          
+          if (lineX > prevLineX) {
+            lineX = prevLineX;
+          }    
+        }  
+      }
+      controllerTimeLastUpdated = millis()/1000.0;
+
+      if (yState == 100 && prevYState != 100 && !landed && lineY < 15) {
+        orientation += 1;
+
+        if (currShape == "i" && lineY >= 13 && (orientation == 3 || orientation == 1)) {
+          orientation -=1;
+        }
+        if (orientation-2 > prevOrientation) {
+          orientation -= 1;
+        }   
+        
+        if (orientation == 5) {
+          orientation = 1;
+        }
+      } else if (yState == 0) {
+        currFallSpeed = fastFallSpeed;
+      } else {
+        currFallSpeed = fallSpeed;
+      }
+
+      detectCollision(false);
+
+      if (!landed) {
+        savePrevLines();
+      }
+      
+      if (currShape == "j") {
+        drawJ();      
+      } else if (currShape == "i") {
+        drawI();
+      } else if (currShape == "z") {
+        drawZ();
+      } else if (currShape == "l") {
+        drawL();
+      } else if (currShape == "o") {
+        drawO();
+      } else if (currShape == "s") {
+        drawS();
+      } else if (currShape == "t") {
+        drawT();
+      }
+
+      if (lineX+width > 9) {
+        lineX = 9-width;
+      } else if (lineX-leftAdj < 0) {
+        lineX = leftAdj;
+      }
+
+      if (lineX-prevLineX > 1) {
+        lineX -= 1;
+      } else if (lineX-prevLineX < -1) {
+        lineX += 1;
+      }
+
+      // if (lineY == 15) {
+      //   lineX = spawnX;
+      // }
+
+      // if (lineY-height < 0) {
+      //   landed = true;
+      // }
+
+      // if (landed) {
+      //   lineY = height;
+      //   currLineY = height;
+      // }
+
+      clearTop(false,true);
+
+      drawGrid();
+      tetrisTimeLastUpdated = millis()/1000.0;
+
+      matrix.drawLine(2, 0, 2, 15, matrix.Color(100,100,100));
+      matrix.drawLine(13, 0, 13, 15, matrix.Color(100,100,100));
+      
+      matrix.show();  
+
+      if (!landed) {
+        for (int i = 0; i < 10; i++) {
+          grid[lineY][i] = prevRow[i];
+        }
+
+        for (int i = 0; i < 10; i++) {
+          grid[lineY-1][i] = prevRow2[i];
+        }
+
+        for (int i = 0; i < 10; i++) {
+          grid[lineY-2][i] = prevRow3[i];
+        }
+
+        for (int i = 0; i < 10; i++) {
+          grid[lineY-3][i] = prevRow4[i];
+        }
+
+        for (int i = 0; i < 10; i++) {
+          grid[lineY+1][i] = prevRow5[i];
+        }
+        
+      } else {
+        if (!tetrisMode) {
+          checkTetris();
+          spawnPiece();
+        }
+      }
+
+      if (tetrisMode) {
+        tetrisAnimation();
+      }
+      
+      matrix.fillScreen(0);
+      delay(65);
+      
+      fallSpeed += 0.0015;
+
+      prevXState = xState;  
+      prevYState = yState; 
+      prevLineX = lineX;
+      prevLineY = lineY;
+      prevOrientation = orientation;      
+    } else {
+      gameOver();
+    }
+  };
+
+  void savePrevLines() {
       for (int i = 0; i < 10; i++) {
         prevRow[i] = grid[lineY][i];
       }
@@ -579,130 +994,32 @@ class Tetris
       for (int i = 0; i < 10; i++) {
         prevRow5[i] = grid[lineY+1][i];
       }
-    }
-    
-    if (xState == 0 && lineX+width < 9 && !landed) {
-      if (prevXState != 0) {  
-        lineX += 1;        
-      } else {
-        currLineX += 5 * (millis()/1000.0 - controllerTimeLastUpdated);    
-        lineX = round(currLineX);  
+  }
 
-        if (lineX < prevLineX) {
-          lineX = prevLineX;
+  void clearTop(bool has_dot, bool is_empty) {
+    for (int i = 0; i < 10; i++) {
+      if (grid[15][i] != 0) {
+        has_dot = true;
+        break;        
+      }
+    }
+
+    if (has_dot) {
+      for (int i = 0; i < 10; i++) {
+        if (grid[14][i] != 0) {
+          is_empty = false;
         }
-      }     
-    } else if (xState == 100 && lineX-leftAdj > 0 && !landed) {
-      if (prevXState != 100) {  
-        lineX -= 1;        
-      } else {
-        currLineX -= 5 * (millis()/1000.0 - controllerTimeLastUpdated);
-        lineX = round(currLineX);    
-        
-        if (lineX > prevLineX) {
-          lineX = prevLineX;
-        }    
-      }  
-    }
-    controllerTimeLastUpdated = millis()/1000.0;
-
-    if (yState == 100 && prevYState != 100 && !landed) {
-      orientation += 1;
-
-      if (orientation-2 > prevOrientation) {
-        orientation -= 1;
-      }   
-      
-      if (orientation == 5) {
-        orientation = 1;
-      }
-    } else if (yState == 0) {
-      currFallSpeed = fastFallSpeed;
-    } else {
-      currFallSpeed = fallSpeed;
-    }
-
-    detectCollision();
-    
-    if (currShape == "j") {
-      drawJ();      
-    } else if (currShape == "i") {
-      drawI();
-    } else if (currShape == "z") {
-      drawZ();
-    } else if (currShape == "l") {
-      drawL();
-    } else if (currShape == "o") {
-      drawO();
-    } else if (currShape == "s") {
-      drawS();
-    } else if (currShape == "t") {
-      drawT();
-    }
-
-    if (lineX+width > 9) {
-      lineX = 9-width;
-    } else if (lineX-leftAdj < 0) {
-      lineX = leftAdj;
-    }
-
-    if (lineX-prevLineX > 1) {
-      lineX -= 1;
-    } else if (lineX-prevLineX < -1) {
-      lineX += 1;
-    }
-
-    if (lineY-height < 0) {
-      landed = true;
-    }
-
-    // if (landed) {
-    //   lineY = height;
-    //   currLineY = height;
-    // }
-
-    drawGrid();
-    tetrisTimeLastUpdated = millis()/1000.0;
-
-    matrix.drawLine(2, 0, 2, 15, matrix.Color(100,100,100));
-    matrix.drawLine(13, 0, 13, 15, matrix.Color(100,100,100));
-    
-    matrix.show();  
-
-    if (!landed) {
-      for (int i = 0; i < 10; i++) {
-        grid[lineY][i] = prevRow[i];
       }
 
-      for (int i = 0; i < 10; i++) {
-        grid[lineY-1][i] = prevRow2[i];
+      if (is_empty) {
+        for (int i = 0; i < 10; i++) {
+          grid[15][i] = 0;
+        }        
       }
-
-      for (int i = 0; i < 10; i++) {
-        grid[lineY-2][i] = prevRow3[i];
-      }
-
-      for (int i = 0; i < 10; i++) {
-        grid[lineY-3][i] = prevRow4[i];
-      }
-
-      for (int i = 0; i < 10; i++) {
-        grid[lineY+1][i] = prevRow5[i];
-      }
-      
     }
-    
-    matrix.fillScreen(0);
-    delay(65);
+  }
 
-    prevXState = xState;  
-    prevYState = yState; 
-    prevLineX = lineX;
-    prevLineY = lineY;
-    prevOrientation = orientation;
-  };
-
-  void detectCollision() {
+  void detectCollision(bool isSpawn) {
     if (currShape == "j") {
       if (orientation == 1) {
         width = 2;
@@ -710,23 +1027,25 @@ class Tetris
         height = 2;  
          
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+2] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           } else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+2] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -749,23 +1068,25 @@ class Tetris
         height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
        } 
       
       if (grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY][lineX] == 0 || grid[lineY][lineX+1] == 0 || grid[lineY-1][lineX+1] == 0 || grid[lineY-2][lineX+1] == 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -787,23 +1108,25 @@ class Tetris
         leftAdj = 0;
         height = 2;   
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
-        if (grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX] != 0) {
-          if (lineX != prevLineX) {
+        if (grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           } else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -826,23 +1149,25 @@ class Tetris
       height = 3;
 
       if (lineY != prevLineY) {
-        if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX] != 0) {
+        if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || lineY-2 < 0) {
           lineY += 1;
           landed = true;          
         }
        } 
       
       if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY][lineX] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -866,24 +1191,26 @@ class Tetris
         leftAdj = 0;
         height = 1;
 
-        if (lineY != prevLineY) {
-          if (grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY][lineX+3] != 0) {
+        if (lineY != prevLineY && !isSpawn) {
+          if (grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY][lineX+3] != 0 || lineY < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY][lineX+3] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY][lineX+3] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -906,23 +1233,25 @@ class Tetris
         height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY+1][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY+1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -944,24 +1273,26 @@ class Tetris
         leftAdj = 0;
         height = 1;
 
-        if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+3] != 0) {
+        if (lineY != prevLineY && !isSpawn) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+3] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+3] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+3] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -984,23 +1315,25 @@ class Tetris
         height = 4;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX+2] != 0) {
+          if (grid[lineY-2][lineX+2] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY+1][lineX+2] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY+1][lineX+2] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1025,23 +1358,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+          if (grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1061,26 +1396,28 @@ class Tetris
       } else if (orientation == 2) {
         width = 1;
         leftAdj = 0;
-        height = 2;
+        height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1103,23 +1440,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1139,26 +1478,28 @@ class Tetris
       } else {
         width = 2;
         leftAdj = -1;
-        height = 1;
+        height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0) {
+          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1183,23 +1524,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1222,29 +1565,36 @@ class Tetris
         height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                Serial.println(0);
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                Serial.println(1);
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
+                Serial.println(2);
                 lineX -= 2;       
               } else if (checked == 3) {
+                Serial.println(3);
                 lineX -= 1;
               } else if (checked == 4) {
+                Serial.println(4);
                 lineX += 4;
               } else if (checked == 5) {
                 lineX -= 2;
@@ -1258,26 +1608,28 @@ class Tetris
       } else if (orientation == 3) {
         width = 2;
         leftAdj = 0;
-        height = 2;
+        height = 3;
 
-        if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+        if (lineY != prevLineY && orientation == prevOrientation) {
+          if (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
-            landed = true;          
+            landed = true;                
           }
         } 
         
         if (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1300,23 +1652,25 @@ class Tetris
         height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY][lineX+1] != 0 || grid[lineY-2][lineX] != 0) {
+          if (grid[lineY][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY][lineX] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1340,23 +1694,25 @@ class Tetris
       height = 2;
 
       if (lineY != prevLineY) {
-        if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
+        if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineY-1 < 0) {
           lineY += 1;
           landed = true;          
         }
       } 
       
       if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0) {
-        if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
           lineX = prevLineX;
           currLineX = prevLineX; 
         }  else if (!landed) {
           checked=0;
           while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
             if (checked == 0) {
-              lineY -= 1;           
+              lineY += 1;           
             } else if (checked == 1) {
-              lineY += 1;
+              lineY -= 1;
               lineX += 1;
             } else if (checked == 2) {
               lineX -= 2;       
@@ -1380,23 +1736,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1419,23 +1777,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0) {
+          if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX+1] != 0 || grid[lineY-2][lineX] != 0 || grid[lineY][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1458,23 +1818,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0) {
+          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-2][lineX+1] != 0 || grid[lineY-2][lineX+2] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1497,23 +1859,25 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
             while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
               if (checked == 0) {
-                lineY -= 1;           
+                lineY += 1;           
               } else if (checked == 1) {
-                lineY += 1;
+                lineY -= 1;
                 lineX += 1;
               } else if (checked == 2) {
                 lineX -= 2;       
@@ -1538,23 +1902,25 @@ class Tetris
         height = 1;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
               while (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
                 if (checked == 0) {
-                  lineY -= 1;           
+                  lineY += 1;           
                 } else if (checked == 1) {
-                  lineY += 1;
+                  lineY -= 1;
                   lineX += 1;
                 } else if (checked == 2) {
                   lineX -= 2;       
@@ -1574,26 +1940,28 @@ class Tetris
       } else if (orientation == 2) {
         width = 1;
         leftAdj = 0;
-        height = 2;
+        height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
               while (grid[lineY-1][lineX] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
                 if (checked == 0) {
-                  lineY -= 1;           
+                  lineY += 1;           
                 } else if (checked == 1) {
-                  lineY += 1;
+                  lineY -= 1;
                   lineX += 1;
                 } else if (checked == 2) {
                   lineX -= 2;       
@@ -1616,31 +1984,41 @@ class Tetris
         height = 2;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0) {
+          if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
+            Serial.println("lineX not equal");
+            Serial.println(lineX);
           }  else if (!landed) {
             checked=0;
               while (grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+2] != 0 || grid[lineY-1][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
                 if (checked == 0) {
-                  lineY -= 1;           
+                  Serial.println(0);
+                  lineY += 1;           
                 } else if (checked == 1) {
-                  lineY += 1;
+                  Serial.println(1);
+                  lineY -= 1;
                   lineX += 1;
                 } else if (checked == 2) {
+                  Serial.println(2);
                   lineX -= 2;       
                 } else if (checked == 3) {
+                  Serial.println(3);
                   lineX -= 1;
                 } else if (checked == 4) {
+                  Serial.println(4);
                   lineX += 4;
                 } else if (checked == 5) {
+                  Serial.println(5);
                   lineX -= 2;
                   orientation = prevOrientation;
                   break;
@@ -1652,26 +2030,28 @@ class Tetris
       } else {
         width = 2;
         leftAdj = -1;
-        height = 2;
+        height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-1 < 0) {
             lineY += 1;
             landed = true;          
           }
         } 
         
         if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0) {
-          if (lineX != prevLineX) {
+          if (isSpawn) {
+            isOver = true;
+          } else if (lineX != prevLineX) {
             lineX = prevLineX;
             currLineX = prevLineX; 
           }  else if (!landed) {
             checked=0;
               while (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY][lineX+1] != 0 || lineX-leftAdj < 0 || lineX+width > 9) {
                 if (checked == 0) {
-                  lineY -= 1;           
+                  lineY += 1;           
                 } else if (checked == 1) {
-                  lineY += 1;
+                  lineY -= 1;
                   lineX += 1;
                 } else if (checked == 2) {
                   lineX -= 2;       
@@ -1788,7 +2168,7 @@ class Tetris
     } else if (orientation == 2) {
       width = 1;
       leftAdj = 0;
-      height = 2;
+      height = 3;
 
       for (int i = lineY; i > lineY-2; i--) {
         grid[i][lineX] = 3;
@@ -1812,7 +2192,7 @@ class Tetris
     } else {
       width = 2;
       leftAdj = -1;
-      height = 1;
+      height = 3;
 
       for (int i = lineY; i > lineY-2; i--) {
         grid[i][lineX+1] = 3;
@@ -1848,7 +2228,7 @@ class Tetris
     } else if (orientation == 3) {
       width = 2;
       leftAdj = 0;
-      height = 2;
+      height = 3;
 
       grid[lineY-2][lineX+2] = 4;
       
@@ -1954,7 +2334,7 @@ class Tetris
       }   
       width = 1;
       leftAdj = 0;
-      height = 2;
+      height = 3;
     } else if (orientation == 3) {
       grid[lineY-2][lineX+1] = 7;
     
@@ -1972,7 +2352,7 @@ class Tetris
       }  
       width = 2;
       leftAdj = -1;
-      height = 2;
+      height = 3;
     }
   };    
 
@@ -1980,17 +2360,24 @@ class Tetris
 
 Tetris tetris;
 
+bool stop = false;
+
+
 void loop() {
+  rotSWstate = digitalRead(rotSW);
   // if (game == "None") {
   //   game = menu();
   //   matrix.fillScreen(0);
   // } else if (game == "flappyBird") {
   //   flapGame.initializeGame();
-  // }
-  tetris.mainGame();
+  // } 
 
-  if (rotSWstate == 0) {
-    Tetris tetris;
+  if (!stop) {
+    tetris.mainGame();    
   }
+
+  // if (rotSWstate == 0) {
+  //   stop = true;
+  // }
 }
 
