@@ -411,50 +411,6 @@ String gameList[2] = { "flappyBird", "tetris" };
 
 int prevXState = 50;
 
-String menu() {
-  game = "None";
-
-  rotSWstate = digitalRead(rotSW);  
-  xState = map(analogRead(potX), 0, 4095, 0, 100);
-
-  if (xState == 100 && prevXState != 100) {
-    gamePointer += 1;    
-  } else if (xState == 0 && prevXState != 0) {
-    gamePointer -= 1;
-  }
-
-  if (gamePointer > 1) {
-    gamePointer = 0;
-  } else if (gamePointer < 0) {
-    gamePointer = 1;
-  }
-
-  if (gameList[gamePointer] == "flappyBird") {
-    Pipe pipe(6, 11, 7, 4, matrix.Color(0,150,0));
-    pipe.drawPipe();
-
-    Bird menuBird(7, 7, 0, 20, 7, 4);
-    menuBird.drawBird();
-  } else if (gameList[gamePointer] == "tetris") {
-    matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
-    matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
-  }
-
-  if (rotSWstate == 0) {
-    game = gameList[gamePointer];
-  }
-
-  if (game == "flappyBird") {
-    flapGame.resetGame();
-  }
-
-  matrix.show();
-
-  prevXState = xState;
-
-  return game;
-}
-
 class Tetris
 {
   public:
@@ -770,6 +726,8 @@ class Tetris
   }
 
   void gameOver() {
+    rotSWstate = digitalRead(rotSW);  
+
     matrix.setFont(&Picopixel);
     matrix.setRotation(2);
 
@@ -1024,7 +982,7 @@ class Tetris
       if (orientation == 1) {
         width = 2;
         leftAdj = 0;
-        height = 2;  
+        height = 2;          
          
         if (lineY != prevLineY) {
           if (grid[lineY-1][lineX] != 0 || grid[lineY-1][lineX+1] != 0 || grid[lineY-1][lineX+2] != 0 || lineY-1 < 0) {
@@ -2362,19 +2320,65 @@ Tetris tetris;
 
 bool stop = false;
 
+String menu() {
+  game = "None";
+
+  rotSWstate = digitalRead(rotSW);  
+  xState = map(analogRead(potX), 0, 4095, 0, 100);
+
+  if (xState == 100 && prevXState != 100) {
+    gamePointer += 1;    
+  } else if (xState == 0 && prevXState != 0) {
+    gamePointer -= 1;
+  }
+
+  if (gamePointer > 1) {
+    gamePointer = 0;
+  } else if (gamePointer < 0) {
+    gamePointer = 1;
+  }
+
+  if (gameList[gamePointer] == "flappyBird") {
+    Pipe pipe(6, 11, 7, 4, matrix.Color(0,150,0));
+    pipe.drawPipe();
+
+    Bird menuBird(7, 7, 0, 20, 7, 4);
+    menuBird.drawBird();
+  } else if (gameList[gamePointer] == "tetris") {
+    matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
+    matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
+  }
+
+  if (rotSWstate == 0) {
+    game = gameList[gamePointer];
+  }
+
+  if (game == "flappyBird") {
+    flapGame.resetGame();
+  } else if (game == "tetris") {
+    tetris.resetTetris();
+  }
+
+  matrix.show();
+
+  prevXState = xState;
+
+  return game;
+}
 
 void loop() {
-  rotSWstate = digitalRead(rotSW);
-  // if (game == "None") {
-  //   game = menu();
-  //   matrix.fillScreen(0);
-  // } else if (game == "flappyBird") {
-  //   flapGame.initializeGame();
-  // } 
-
-  if (!stop) {
-    tetris.mainGame();    
+  if (game == "None") {
+    game = menu();
+    matrix.fillScreen(0);
+  } else if (game == "flappyBird") {
+    flapGame.initializeGame();
+  } else if (game == "tetris") {
+    tetris.mainGame();
   }
+
+  // if (!stop) {
+  //   tetris.mainGame();    
+  // }
 
   // if (rotSWstate == 0) {
   //   stop = true;
