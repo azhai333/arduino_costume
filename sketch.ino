@@ -2436,6 +2436,8 @@ class SpaceInvaders
   int xState;
   int prevXState; 
 
+  int yState;
+
   int rotSWstate;
   int prevState;
 
@@ -2460,6 +2462,11 @@ class SpaceInvaders
   float invaders[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
                             {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
                             {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}}};
+
+  float invadersOrig[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}}};
+  
   
   int invadersTotals[4] = {5,5,5,5};
 
@@ -2817,7 +2824,9 @@ class SpaceInvaders
                 invaderBlasts[i][1] = shipY+2;
                 invaderBlasts[i][2] = invaderBlasts[i][1];   
 
-                barriers[j][0] -= 1;
+                if (barriers[j][1] != 1) {
+                barriers[j][0] -= 1;                  
+                }
                 barriers[j][1] = 1;
                 barriers[j][2] = millis()/1000.0;  
               } else if (j == 1 && invaderBlasts[i][0] >= 7 && invaderBlasts[i][0] <= 8) {
@@ -2825,7 +2834,9 @@ class SpaceInvaders
                 invaderBlasts[i][1] = shipY+2;
                 invaderBlasts[i][2] = invaderBlasts[i][1];      
 
-                barriers[j][0] -= 1;
+                if (barriers[j][1] != 1) {
+                barriers[j][0] -= 1;                  
+                }
                 barriers[j][1] = 1;
                 barriers[j][2] = millis()/1000.0;             
               } else if (j == 2 && invaderBlasts[i][0] >= 12 && invaderBlasts[i][0] <= 14) {
@@ -2833,7 +2844,9 @@ class SpaceInvaders
                 invaderBlasts[i][1] = shipY+2;
                 invaderBlasts[i][2] = invaderBlasts[i][1];
 
-                barriers[j][0] -= 1;
+                if (barriers[j][1] != 1) {
+                barriers[j][0] -= 1;                  
+                }
                 barriers[j][1] = 1;
                 barriers[j][2] = millis()/1000.0;    
               }
@@ -2844,9 +2857,12 @@ class SpaceInvaders
           invaderBlasts[i][1] = shipY+2;
           invaderBlasts[i][2] = invaderBlasts[i][1];
 
+          if (!isHit) {
+            lives -= 1;     
+          }
+
           isHit = true;
           timeHit = millis()/1000.0;  
-          lives -= 1;     
           if (lives <= 0) {
             isOver = true;
           }
@@ -2860,6 +2876,8 @@ class SpaceInvaders
   }
 
   void invadersOver() {
+    yState = map(analogRead(potY), 0, 4095, 0, 100);
+
     matrix.setFont(&Picopixel);
     matrix.setRotation(0);
 
@@ -2903,6 +2921,62 @@ class SpaceInvaders
   }
 
   void resetInvaders() {
+    matrix.setRotation(2);
+
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < 4; j++) {
+        playerBlasts[i][j] = -1;        
+      }
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 4; j++) {
+        invaderBlasts[i][j] = -1;
+      }
+    }
+
+    for (int i = 0; i < 5; i++) {
+      for (int j = 0; j < 5; j++) {
+        for (int k = 0; k < 2; k++) {
+          invaders[i][j][k] = invadersOrig[i][j][k];
+        }
+      }
+    }    
+    
+    for (int i = 0; i < 3; i++) {
+      invadersTotals[i] = 5;      
+    }
+
+    for (int i = 0; i < 5; i++) {
+      xPositions[i] = 0;
+    }
+
+    for (int i = 0; i < 5; i++) {
+      currXPositions[i] = 0.0;
+    }
+
+    for (int i = 0; i < 5; i++) {
+      yPositions[i] = 16;
+    }
+
+    for (int i = 0; i < 5; i++) {
+      prevYPositions[i] = 16;
+    }
+
+    for (int i = 0; i < 5; i++) {
+      currYPositions[i] = 16.0;
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        if (j == 0) {
+          barriers[i][j] = 5;          
+        } else {
+          barriers[i][j] = 0;
+        }
+      }
+    }
+
     shipX = 7;
     shipY = 1;
 
