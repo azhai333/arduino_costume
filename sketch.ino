@@ -62,7 +62,7 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
 void setup() {
   Serial.begin(9600);
   matrix.begin();
-  matrix.setBrightness(30);
+  matrix.setBrightness(40);
   matrix.show();
   pinMode(SW, INPUT_PULLUP);
   pinMode(potX, INPUT_PULLUP);
@@ -2439,16 +2439,33 @@ class SpaceInvaders
   int rotSWstate;
   int prevState;
 
-  int blastX;
-  int blastY;
-  float currBlastY;
+  // int blastX;
+  // int blastY;
+  // float currBlastY;
+  float playerBlasts[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
+
+  //xPos, yPos, currYPos
+  float invaderBlasts[3][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1},{-1,-1,-1,-1}};
+  int invaderBlastX;
+  int invaderBlastY;
+
   float blastVel;
   float blastTimeLastUpdated;
   float gameStartTime;
   bool isBlast;
   int blastCount;
 
-  float invaders[5][4][2] = {{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}}};
+  int currTime;
+
+  float invaders[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}}};
+  
+  int invadersTotals[4] = {5,5,5,5};
+
+  bool isHit;
+  float timeHit;
+
   float invaderVel;
   float invaderYVel; 
 
@@ -2459,16 +2476,26 @@ class SpaceInvaders
   int prevYPositions[5] = {16,16,16,16,16};
   float currYPositions[5] = {16.0,16.0,16.0,16.0,16.0};
 
-  int barriers[3] = {5,5,5};
+  float barriers[3][3] = {{5,0,0},{5,0,0},{5,0,0}};
+
+  int encVal;
+  int prevEncVal;
+
+  float fireTime;
+  float invadersTimeLastUpdated;
+
+  bool isOver;
+
+  int lives;
 
   SpaceInvaders()
   {
     shipX = 7;
     shipY = 1;
 
-    blastX = -1;
-    blastY = shipY+2;
-    currBlastY = blastY;
+    // blastX = -1;
+    // blastY = shipY+2;
+    // currBlastY = blastY;
     blastVel = 32;
     blastTimeLastUpdated = millis()/1000.0;
     gameStartTime = millis()/1000.0;
@@ -2478,48 +2505,92 @@ class SpaceInvaders
     rotSWstate = digitalRead(rotSW);   
     prevState = 1;
 
+    encVal = getEncVal();
+    prevEncVal = encVal;
+
     blastCount = 0; 
+
+    currTime = 0;
 
     // invaders[4][2] = {{14,17},{11,17},{8,17},{5,17}}
     // invaders[4][2] = {{9,17},{6,17},{3,17},{0,17}}
 
-    invaderVel = 1;
+    invaderVel = 0.2;
     invaderYVel = -invaderVel;
+
+    isHit = false;
+
+    invaderBlastX = 0;
+    invaderBlastY = 0;
+
+    fireTime = random(3,10)/10.0;
+    invadersTimeLastUpdated = millis()/1000.0;
+
+    lives = 3;
+    isOver = false;
   }
 
   void drawShip() {
-    matrix.drawLine(shipX,shipY,shipX+2,shipY,matrix.Color(0,150,0));    
-    matrix.drawPixel(shipX+1,shipY+1,matrix.Color(0,150,0));
+    if (!isHit) {
+      matrix.drawLine(shipX,shipY,shipX+2,shipY,matrix.Color(0,150,0));    
+      matrix.drawPixel(shipX+1,shipY+1,matrix.Color(0,150,0));
+    } else if (millis()/1000.0 - timeHit <= 0.4) {
+      matrix.drawLine(shipX,shipY,shipX+2,shipY,matrix.Color(150,0,0));    
+      matrix.drawPixel(shipX+1,shipY+1,matrix.Color(150,0,0));
+    } else {
+      isHit = false;
+    }
   }
 
   void drawInvaders() {
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 4; j++) {
         if (invaders[i][j][0] == 1) {
-          matrix.fillRect(j*3+xPositions[i],i+yPositions[i],2,2,matrix.Color(150,150,150));
+          matrix.fillRect(j*3+xPositions[i],i*3+yPositions[i],2,2,matrix.Color(150,150,150));
         } else if (invaders[i][j][0] == 2) {
-          if (millis()/1000.0 - invaders[i][j][1] < 500) {
-            matrix.fillRect(j*3+xPositions[i],i+yPositions[i],2,2,matrix.Color(236,0,0));            
-          } else if (millis()/1000.0 - invaders[i][j][1] < 1000) {
-            matrix.drawRect(j*3+xPositions[i]-1,i+yPositions[i]-1,4,4,matrix.Color(236,0,0));                        
-          } else if (millis()/1000.0 - invaders[i][j][1] < 1500) {
-            matrix.drawRect(j*3+xPositions[i]-1,i+yPositions[i]-1,4,4,matrix.Color(236,105,44)); 
-            invaders[i][j][0] = 0;                              
+          if (millis()/1000.0 - invaders[i][j][1] < 0.1) {
+            matrix.fillRect(j*3+xPositions[i],i*3+yPositions[i],2,2,matrix.Color(236,0,0));            
+          } else if (millis()/1000.0 - invaders[i][j][1] < 0.2) {
+            matrix.drawRect(j*3+xPositions[i]-1,i*3+yPositions[i]-1,4,4,matrix.Color(236,0,0));                        
+          } else if (millis()/1000.0 - invaders[i][j][1] < 0.3) {
+            matrix.drawRect(j*3+xPositions[i]-1,i*3+yPositions[i]-1,4,4,matrix.Color(236,105,44)); 
+          } else if (millis()/1000.0 - invaders[i][j][1] < 0.4) {
+            invaders[i][j][0] = 0;
           }
         }
       }
     }
   }
 
+  // Serial.println(barriers[0][])
+
   void drawBarriers() {
     for (int i = 0; i < 3; i++) {
-      if (barriers[i] > 0) {
+      if (barriers[i][0] > 0) {        
         if (i == 0) {
-          matrix.fillRect(1, shipY+4, 3, 2, matrix.Color(0,150,0));
+          if (barriers[i][1] == 0) {
+            matrix.fillRect(1, shipY+4, 3, 2, matrix.Color(0,150,0));
+          } else if (millis()/1000.0 - barriers[i][2] <= 0.4) {
+            matrix.fillRect(1, shipY+4, 3, 2, matrix.Color(150,0,0));
+          } else {
+            barriers[i][1] = 0;
+          }
         } else if (i == 1) {
-          matrix.fillRect(7, shipY+4, 2, 2, matrix.Color(0,150,0));          
+          if (barriers[i][1] == 0) {
+            matrix.fillRect(7, shipY+4, 2, 2, matrix.Color(0,150,0));
+          } else if (millis()/1000.0 - barriers[i][2] <= 0.4) {
+            matrix.fillRect(7, shipY+4, 2, 2, matrix.Color(150,0,0));
+          } else {
+            barriers[i][1] = 0;
+          }       
         } else {
-          matrix.fillRect(12, shipY+4, 3, 2, matrix.Color(0,150,0));          
+          if (barriers[i][1] == 0) {
+            matrix.fillRect(12, shipY+4, 3, 2, matrix.Color(0,150,0));
+          } else if (millis()/1000.0 - barriers[i][2] <= 0.4) {
+            matrix.fillRect(12, shipY+4, 3, 2, matrix.Color(150,0,0));
+          } else {
+            barriers[i][1] = 0;
+          }        
         }
       }
     }
@@ -2527,126 +2598,395 @@ class SpaceInvaders
 
   void moveInvaders() {
     for (int i = 0; i < 5; i++) {
-      if ((xPositions[i] == 5 && invaderVel > 0) || (xPositions[i] == 0 && invaderVel < 0)) {
-        currYPositions[i] += invaderYVel * (millis()/1000.0 - blastTimeLastUpdated);
+      if ((xPositions[i] == 5 && invaders[i][4][0] > 0) || (xPositions[i] == 0 && invaders[i][4][0] < 0)) {
+        currYPositions[i] += invaders[i][4][1] * (millis()/1000.0 - blastTimeLastUpdated);
         yPositions[i] = round(currYPositions[i]);
+
+        // yPositions[i] -= 1;
+        // invaders[i][4][0] *= -1;
 
         if (prevYPositions[i] == yPositions[i]+1) {
           currYPositions[i] = yPositions[i];
           prevYPositions[i] = yPositions[i];
-          invaderVel *= -1;
+          invaders[i][4][0] *= -1;
+
+          if (xPositions[i] == 5) {
+            currXPositions[i] = 6;
+          } else {
+            currXPositions[i] = -1;           
+          }
         }
       } else {
-        currXPositions[0] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
-        xPositions[0] = round(currXPositions[0]);
+        currTime = blastTimeLastUpdated;
         
-        if (millis()/1000.0-gameStartTime >= 100) {
-          currXPositions[1] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+        currXPositions[0] += invaders[0][4][0] * (millis()/1000.0 - currTime);
+        xPositions[0] = round(currXPositions[0]);
+
+        if (xPositions[0] < 0) {
+          xPositions[0] = 0;
+        } else if (xPositions[0] > 5) {
+          xPositions[0] = 5;          
+        }
+        
+        if (millis()/1000.0-gameStartTime >= 0.3) {
+          currXPositions[1] += invaders[1][4][0] * (millis()/1000.0 - currTime);
           xPositions[1] = round(currXPositions[1]);
+
+          if (xPositions[1] < 0) {
+            xPositions[1] = 0;
+          } else if (xPositions[1] > 5) {
+            xPositions[1] = 5;          
+          }
         }    
 
-        if (millis()/1000.0-gameStartTime >= 200) {
-          currXPositions[2] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+        if (millis()/1000.0-gameStartTime >= 0.6) {
+          currXPositions[2] += invaders[2][4][0] * (millis()/1000.0 - currTime);
           xPositions[2] = round(currXPositions[2]);
+
+          if (xPositions[2] < 0) {
+            xPositions[2] = 0;
+          } else if (xPositions[2] > 5) {
+            xPositions[2] = 5;          
+          }
         }
 
-        if (millis()/1000.0-gameStartTime >= 300) {
-          currXPositions[3] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+        if (millis()/1000.0-gameStartTime >= 0.9) {
+          currXPositions[3] += invaders[3][4][0] * (millis()/1000.0 - currTime);
           xPositions[3] = round(currXPositions[3]);
+
+          if (xPositions[3] < 0) {
+            xPositions[3] = 0;
+          } else if (xPositions[3] > 5) {
+            xPositions[3] = 5;          
+          }
         }
 
-        if (millis()/1000.0-gameStartTime >= 400) {
-          currXPositions[4] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+        if (millis()/1000.0-gameStartTime >= 1.2) {
+          currXPositions[4] += invaders[4][4][0] * (millis()/1000.0 - currTime);
           xPositions[4] = round(currXPositions[4]);
+
+          if (xPositions[4] < 0) {
+            xPositions[4] = 0;
+          } else if (xPositions[4] > 5) {
+            xPositions[4] = 5;          
+          }
         }        
       }
     }
   }
 
   void makeBlast() {
-    blastX = shipX+1;
-    blastY = shipY+2;  
-    isBlast = true;
+    for (int i = 0; i < 2; i++) {
+      if (playerBlasts[i][0] == -1 && (playerBlasts[i*-1+1][0] != shipX+1 || playerBlasts[i*-1+1][1] >= shipY+5)) {
+        playerBlasts[i][0] = shipX+1;
+        playerBlasts[i][1] = shipY+2;
+        playerBlasts[i][2] = shipY+2;
+      }
+    }
   }
 
   void drawBlast() {
-    matrix.drawPixel(blastX,blastY,matrix.Color(230,250,230));
-    matrix.drawPixel(blastX,blastY-1,matrix.Color(130,170,170));
-    matrix.drawPixel(blastX,blastY-2,matrix.Color(50,140,140));
+    for (int i = 0; i < 2; i++) {
+      if (playerBlasts[i][0] != -1) {
+        matrix.drawPixel(playerBlasts[i][0],playerBlasts[i][1],matrix.Color(230,250,230));
+        matrix.drawPixel(playerBlasts[i][0],playerBlasts[i][1]-1,matrix.Color(130,170,170));
+        matrix.drawPixel(playerBlasts[i][0],playerBlasts[i][1]-2,matrix.Color(50,140,140));
+      }
+    }
 
+    for (int i = 0; i < 3; i++) {
+      if (invaderBlasts[i][0] != -1) {
+        matrix.drawPixel(invaderBlasts[i][0],invaderBlasts[i][1],matrix.Color(230,0,0));
+        matrix.drawPixel(invaderBlasts[i][0],invaderBlasts[i][1]+1,matrix.Color(230,70,0));
+        matrix.drawPixel(invaderBlasts[i][0],invaderBlasts[i][1]+2,matrix.Color(230,120,0));
+      }
+    }
   }
 
   void blastCollision() {
-    if (blastY > 31) {
-      blastX = -1;
-      blastY = shipY+2;
-      currBlastY = blastY;
-      isBlast = false;
-    } else {
-      for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 4; j++) {
-          if (invaders[i][j][0] == 1) {
-            if (blastX >= j*3+xPositions[i] && blastX <= j*3+xPositions[i]+1 && blastY >= i+yPositions[i] && blastY <= i+yPositions[i]+1) {
-              blastX = -1;
-              blastY = shipY+2;
-              currBlastY = blastY;
-              isBlast = false;
+    for (int h = 0; h < 2; h++) {
+      if (playerBlasts[h][0] != -1) {
+        if (playerBlasts[h][1] > 31) {
+          playerBlasts[h][0] = -1;
+          playerBlasts[h][1] = shipY+2;
+          playerBlasts[h][2] = playerBlasts[h][1];
+        }
 
-              invaders[i][j][0] = 2;       
-              invaders[i][j][1] = millis()/1000.0;             
-            }
+        if (playerBlasts[h][1] >= shipY+4 && playerBlasts[h][1] <= shipY+5) {
+          for (int i = 0; i < 3; i++) {
+            if (barriers[i][0] > 0) {
+              if (i == 0 && playerBlasts[h][0] >= 1 && playerBlasts[h][0] <= 3) {
+                playerBlasts[h][0] = -1;
+                playerBlasts[h][1] = shipY+2;
+                playerBlasts[h][2] = playerBlasts[h][1];                
+              } else if (i == 1 && playerBlasts[h][0] >= 7 && playerBlasts[h][0] <= 8) {
+                playerBlasts[h][0] = -1;
+                playerBlasts[h][1] = shipY+2;
+                playerBlasts[h][2] = playerBlasts[h][1];                 
+              } else if (i == 1 && playerBlasts[h][0] >= 12 && playerBlasts[h][0] <= 14) {
+                playerBlasts[h][0] = -1;
+                playerBlasts[h][1] = shipY+2;
+                playerBlasts[h][2] = playerBlasts[h][1];  
+              }
+            }          
           }
         }
-      }
+     
+        for (int i = 0; i < 5; i++) {
+          for (int j = 0; j < 4; j++) {
+            if (invaders[i][j][0] == 1) {
+              if (playerBlasts[h][0] >= j*3+xPositions[i] && playerBlasts[h][0] <= j*3+xPositions[i]+1 && playerBlasts[h][1] >= i*3+yPositions[i]) {
+                playerBlasts[h][0] = -1;
+                playerBlasts[h][1] = shipY+2;
+                playerBlasts[h][2] = playerBlasts[h][1];
+
+                invaders[i][j][0] = 2;       
+                invaders[i][j][1] = millis()/1000.0;     
+
+                invadersTotals[j] -= 1;      
+              }
+            }
+          }
+        }        
+      } 
     }
   }
     
   void moveBlast() { 
-    currBlastY += blastVel * (millis()/1000.0 - blastTimeLastUpdated);
-    blastY = round(currBlastY);
-    blastCollision();
+    for (int i = 0; i < 2; i++) {
+      if (playerBlasts[i][0] != -1) {
+        playerBlasts[i][2] += blastVel * (millis()/1000.0 - blastTimeLastUpdated);
+        playerBlasts[i][1] = round(playerBlasts[i][2]);
+        blastCollision();
+      }
+    }
   }
 
-  void invaderBlast() {
+  bool isInArray(int blastX) {
+    for (int i = 0; i < 4; i++) {
+      if (invaderBlasts[i][0] == blastX) {
+        return true;
+      }   
+    }
+    return false;
+  }
 
+  void makeInvaderBlast() {    
+    invaderBlastX = random(4);
+    
+    while (isInArray(invaderBlastX) && invadersTotals[invaderBlastX] <= 0) {
+      invaderBlastX = random(4);
+    }
+
+    invaderBlastY = 0;
+
+    while (invaders[invaderBlastY][invaderBlastX][0] != 1 && invaderBlastY < 5) {
+      invaderBlastY += 1;
+    }
+    
+    for (int i = 0; i < 3; i++) {
+      if (invaderBlasts[i][0] == -1) {
+        invaderBlasts[i][0] = invaderBlastX*3+xPositions[invaderBlastY];
+        invaderBlasts[i][1] = invaderBlastY*3+yPositions[invaderBlastY];
+        invaderBlasts[i][2] = invaderBlastY*3+yPositions[invaderBlastY];
+      }
+    }
+    fireTime = random(3,10)/10.0;
+    invadersTimeLastUpdated = millis()/1000.0;
+  }
+
+  void moveInvaderBlasts() {
+    for (int i = 0; i < 3; i++) {
+      if (invaderBlasts[i][0] != -1) {
+        invaderBlasts[i][2] += -blastVel * (millis()/1000.0 - blastTimeLastUpdated);
+        invaderBlasts[i][1] = round(invaderBlasts[i][2]);
+
+        invaderBlastCollision();
+      }
+    }
+  }
+
+  void invaderBlastCollision() {
+    for (int i = 0; i < 3; i++) {
+      if (invaderBlasts[i][0] != -1) {
+        if (invaderBlasts[i][1] <= shipY+5 && invaderBlasts[i][1] >= shipY+2) {
+          for (int j = 0; j < 3; j++) {
+            if (barriers[j][0] > 0) {
+              if (j == 0 && invaderBlasts[i][0] >= 1 && invaderBlasts[i][0] <= 3) {
+                invaderBlasts[i][0] = -1;
+                invaderBlasts[i][1] = shipY+2;
+                invaderBlasts[i][2] = invaderBlasts[i][1];   
+
+                barriers[j][0] -= 1;
+                barriers[j][1] = 1;
+                barriers[j][2] = millis()/1000.0;  
+              } else if (j == 1 && invaderBlasts[i][0] >= 7 && invaderBlasts[i][0] <= 8) {
+                invaderBlasts[i][0] = -1;
+                invaderBlasts[i][1] = shipY+2;
+                invaderBlasts[i][2] = invaderBlasts[i][1];      
+
+                barriers[j][0] -= 1;
+                barriers[j][1] = 1;
+                barriers[j][2] = millis()/1000.0;             
+              } else if (j == 2 && invaderBlasts[i][0] >= 12 && invaderBlasts[i][0] <= 14) {
+                invaderBlasts[i][0] = -1;
+                invaderBlasts[i][1] = shipY+2;
+                invaderBlasts[i][2] = invaderBlasts[i][1];
+
+                barriers[j][0] -= 1;
+                barriers[j][1] = 1;
+                barriers[j][2] = millis()/1000.0;    
+              }
+            }          
+          }
+        } else if (invaderBlasts[i][0] >= shipX && invaderBlasts[i][0] <= shipX+2 && invaderBlasts[i][1] <= shipY) {
+          invaderBlasts[i][0] = -1;
+          invaderBlasts[i][1] = shipY+2;
+          invaderBlasts[i][2] = invaderBlasts[i][1];
+
+          isHit = true;
+          timeHit = millis()/1000.0;  
+          lives -= 1;     
+          if (lives <= 0) {
+            isOver = true;
+          }
+        } else if (invaderBlasts[i][1] < 0) {
+          invaderBlasts[i][0] = -1;
+          invaderBlasts[i][1] = shipY+2;
+          invaderBlasts[i][2] = invaderBlasts[i][1];
+        } 
+      }
+    }  
+  }
+
+  void invadersOver() {
+    matrix.setFont(&Picopixel);
+    matrix.setRotation(0);
+
+    matrix.setCursor(2, 4);
+    matrix.setTextColor(matrix.Color(150,0,0));
+    //void setTextWrap(boolean w);      
+    matrix.print("End");
+
+    matrix.setCursor(7,9);
+    matrix.print("r");
+    matrix.setCursor(5,14);
+    matrix.print("m");    
+    
+    if (yState == 0 && triY1 == 8) {
+      triX1 = 4;
+      triY1 = 13;
+      triX2 = 3;
+      triY2 = 12;
+      triX3 = 3;
+      triY3 = 14;
+    } else if (yState == 100 && triY1 == 13) {
+      triX1 = 6;
+      triY1 = 8;
+      triX2 = 5;
+      triY2 = 7;
+      triX3 = 5;
+      triY3 = 9;
+    }
+
+    if (rotSWstate == 0 && triY1 == 8) {
+      resetInvaders();
+    } else if (rotSWstate == 0 && triY1 == 13) {
+      game = "None";
+      delay(300);
+    }
+    
+    matrix.fillTriangle(triX1,triY1,triX2,triY2,triX3,triY3,matrix.Color(0,0,150));
+    
+    matrix.show();
+    matrix.fillScreen(0);    
+  }
+
+  void resetInvaders() {
+    shipX = 7;
+    shipY = 1;
+
+    // blastX = -1;
+    // blastY = shipY+2;
+    // currBlastY = blastY;
+    blastVel = 32;
+    blastTimeLastUpdated = millis()/1000.0;
+    gameStartTime = millis()/1000.0;
+    isBlast = false;
+
+    xState = map(analogRead(potX), 0, 4095, 0, 100);
+    rotSWstate = digitalRead(rotSW);   
+    prevState = 1;
+
+    encVal = getEncVal();
+    prevEncVal = encVal;
+
+    blastCount = 0; 
+
+    currTime = 0;
+
+    // invaders[4][2] = {{14,17},{11,17},{8,17},{5,17}}
+    // invaders[4][2] = {{9,17},{6,17},{3,17},{0,17}}
+
+    invaderVel = 0.2;
+    invaderYVel = -invaderVel;
+
+    isHit = false;
+
+    invaderBlastX = 0;
+    invaderBlastY = 0;
+
+    fireTime = random(3,10)/10.0;
+    invadersTimeLastUpdated = millis()/1000.0;
+
+    lives = 3;
+    isOver = false;
   }
 
   void mainGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     rotSWstate = digitalRead(rotSW);
+    encVal = getEncVal();
 
-    if (xState == 100 && prevXState != 100) {
-      shipX -= 1;    
-    } else if (xState == 0 && prevXState != 0) {
-      shipX += 1;
-    }
+    if (!isOver) {
+      if ((xState == 100 && prevXState != 100) || encVal-prevEncVal < 0) {
+        shipX -= 1;    
+      } else if ((xState == 0 && prevXState != 0) || encVal-prevEncVal > 0) {
+        shipX += 1;
+      }
 
-    if (rotSWstate == 0 && prevState == 1 && !isBlast) {
-      makeBlast();
-    }
+      if (rotSWstate == 0 && prevState == 1) {
+        makeBlast();
+      }
 
-    moveInvaders();
-    drawInvaders();
+      moveInvaders();
+      drawInvaders();
 
-    drawBarriers();
+      drawBarriers();
 
-    drawShip();
+      drawShip();
 
-    if (isBlast) {
       moveBlast();
-    }
-
-    if (isBlast) {
+      moveInvaderBlasts();
       drawBlast();
+
+      if (millis()/1000.0 - invadersTimeLastUpdated >= fireTime) {
+        makeInvaderBlast();
+      }
+
+      blastTimeLastUpdated = millis()/1000.0;
+
+      matrix.show();
+      matrix.fillScreen(0);    
+
+      prevXState = xState;
+      prevState = rotSWstate;
+      prevEncVal = encVal;
+
+      delay(65);
+    } else {
+      invadersOver();
     }
-
-    blastTimeLastUpdated = millis()/1000.0;
-
-    matrix.show();
-    matrix.fillScreen(0);    
-
-    prevXState = xState;
-    prevState = rotSWstate;
   }
 }
 
