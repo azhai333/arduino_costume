@@ -50,7 +50,7 @@ Encoder myEnc(26, 27);
 #define PIN 13 //Neopixel matrix output
 //Define Matrix
 #define NUMROWS 16
-#define NUMCOLS 16
+#define NUMCOLS 32
 
 
 
@@ -69,6 +69,8 @@ void setup() {
   pinMode(potY, INPUT_PULLUP);
   //pinMode(twist, INPUT);
   delay(500);
+
+  matrix.setRotation(2);
 }
 
 String game = "None";
@@ -112,7 +114,7 @@ class Pipe
 
   void drawPipe()
   {
-    topHeight = 16-topY;
+    topHeight = 32-topY;
     bottomHeight = topY-gap;
         
     matrix.fillRect(topX, topY, pipeWidth, topHeight, pipeColor);
@@ -198,8 +200,8 @@ class Bird
     currDotY = 1.0;
   }
 
-  if (dotY > 14) {
-    dotY = 14;
+  if (dotY > 30) {
+    dotY = 30;
    }
   }
   
@@ -212,11 +214,11 @@ class Bird
   }
 };
 
-Bird gameBird(14, 7, 0, 20, 7, 4);
+Bird gameBird(14, 16, 0, 20, 7, 4);
 
-Pipe pipes[3] = {Pipe(-4, random(9,14), 7, 4, matrix.Color(0,150,0)),
-              Pipe(-17, random(9,14), 7, 4, matrix.Color(0,150,0)),
-              Pipe(-30, random(9,14), 7, 4, matrix.Color(0,150,0))
+Pipe pipes[3] = {Pipe(-4, random(9,30), 7, 4, matrix.Color(0,150,0)),
+              Pipe(-17, random(9,30), 7, 4, matrix.Color(0,150,0)),
+              Pipe(-30, random(9,30), 7, 4, matrix.Color(0,150,0))
 };
     
 class FlappyBird
@@ -286,7 +288,7 @@ class FlappyBird
       pipes[i].drawPipe();
 
       if (pipes[i].currX >= 16) {
-        pipes[i].topY = random(9,14);
+        pipes[i].topY = random(9,30);
         pipes[i].topX = -22;
         pipes[i].currX = -22;
       }
@@ -297,15 +299,15 @@ class FlappyBird
     delay(200);
 
     gameBird.dotX = 14;
-    gameBird.dotY = 7;
-    gameBird.currDotY = 7;
+    gameBird.dotY = 16;
+    gameBird.currDotY = 16;
     gameBird.upSpeed = 0;
     gameBird.currFallSpeed = gameBird.baseFallSpeed;
 
     rotSWstate = digitalRead(rotSW);
     prevState = 1;
 
-    matrix.setRotation(0);
+    matrix.setRotation(2);
 
     pipes[0].topX = -4;
     pipes[1].topX = -17;
@@ -334,7 +336,7 @@ class FlappyBird
       delay(100);
     } else {
       matrix.setFont(&Picopixel);
-      matrix.setRotation(2);
+      matrix.setRotation(0);
 
       matrix.setCursor(2, 4);
       matrix.setTextColor(matrix.Color(150,0,0));
@@ -414,12 +416,13 @@ int prevXState = 50;
 class Tetris
 {
   public:
-  int grid[16][10] = { {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+  int grid[20][10] = { {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
-                     {0,0,0,0,0,0,0,0,0,0}};  
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0}};  
 
   int prevRow[10] = {0,0,0,0,0,0,0,0,0,0};
   int prevRow2[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -441,6 +444,7 @@ class Tetris
   float controllerTimeLastUpdated;
 
   String currShape;
+  String nextShape;
   int orientation;
   int prevOrientation;
   int width;
@@ -455,6 +459,9 @@ class Tetris
   int prevXState;
   int yState;
   int prevYState;
+  
+  int encVal;
+  int prevEncVal;
 
   int checked;
 
@@ -464,7 +471,7 @@ class Tetris
   int rand2;
   int temp;
   
-  int tetrisRows[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  int tetrisRows[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   bool hasTetris;
   bool tetrisMode;
   int tetrisStart;
@@ -487,8 +494,8 @@ class Tetris
 
     checked = 0;
 
-    currLineY = 15;
-    lineY = 15;
+    currLineY = 19;
+    lineY = 19;
     prevLineY = lineY;
     tetrisTimeLastUpdated = millis()/1000.0;   
     controllerTimeLastUpdated = millis()/1000.0;
@@ -541,6 +548,9 @@ class Tetris
     prevXState = xState;
     prevYState = xState; 
 
+    encVal = getEncVal();
+    prevEncVal = encVal;
+
     hasTetris = false;
     tetrisMode = false;
     tetrisStart = -1;
@@ -551,7 +561,7 @@ class Tetris
   }
 
   void resetTetris() {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 20; i++) {
       for (int j = 0; j < 10; j++) {
         grid[i][j] = 0;
       }
@@ -562,13 +572,13 @@ class Tetris
 
     currFallSpeed = fallSpeed;
     
-    currLineY = 15;
-    lineY = 15;
+    currLineY = 19;
+    lineY = 19;
     prevLineY = lineY;
 
     spawnPiece();
     isOver = false;
-    matrix.setRotation(0);
+    matrix.setRotation(2);
 
     tetrisTimeLastUpdated = millis()/1000.0;
   }
@@ -588,24 +598,48 @@ class Tetris
     }   
   }
 
+  void drawNextShape() {
+    if (nextShape == "i") {
+      matrix.drawLine(0, 29, 3, 29, matrix.Color(110,236,238));
+    } else if (nextShape == "j") {
+      matrix.drawLine(0, 29, 2, 29, matrix.Color(0,0,230));
+      matrix.drawPixel(2, 30, matrix.Color(0,0,230));      
+    } else if (nextShape == "z") {
+      matrix.drawLine(0, 29, 1, 29, matrix.Color(230,0,0));
+      matrix.drawLine(1, 30, 2, 30, matrix.Color(230,0,0));
+    } else if (nextShape == "l") {
+      matrix.drawLine(0, 29, 2, 29, matrix.Color(238,167,53));
+      matrix.drawPixel(0, 30, matrix.Color(238,167,53));         
+    } else if (nextShape == "o") {
+      matrix.drawLine(0, 29, 1, 29, matrix.Color(240,240,80));
+      matrix.drawLine(0, 30, 1, 30, matrix.Color(240,240,80));      
+    } else if (nextShape == "s") {
+      matrix.drawLine(0, 30, 1, 30, matrix.Color(0,230,0));
+      matrix.drawLine(1, 29, 2, 29, matrix.Color(0,230,0));      
+    } else if (nextShape == "t") {
+      matrix.drawLine(0, 29, 2, 29, matrix.Color(140,40,230));
+      matrix.drawPixel(1, 30, matrix.Color(140,40,230));       
+    }
+  }
+
   void drawGrid() {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 20; i++) {
       for (int j = 0; j < 10; j++) {
         int pixel = grid[i][j];
         if (pixel == 1) {
-          matrix.drawPixel(j+3, i, matrix.Color(110,236,238));
+          matrix.drawPixel(j+3, i+6, matrix.Color(110,236,238));
         } else if (pixel == 2) {
-          matrix.drawPixel(j+3, i, matrix.Color(0,0,230));        
+          matrix.drawPixel(j+3, i+6, matrix.Color(0,0,230));        
         } else if (pixel == 3) {
-          matrix.drawPixel(j+3, i, matrix.Color(230,0,0));
+          matrix.drawPixel(j+3, i+6, matrix.Color(230,0,0));
         } else if (pixel == 4) {
-          matrix.drawPixel(j+3, i, matrix.Color(238,167,53));
+          matrix.drawPixel(j+3, i+6, matrix.Color(238,167,53));
         } else if (pixel == 5) {
-          matrix.drawPixel(j+3, i, matrix.Color(240,240,80));
+          matrix.drawPixel(j+3, i+6, matrix.Color(240,240,80));
         } else if (pixel == 6) {
-          matrix.drawPixel(j+3, i, matrix.Color(0,230,0));
+          matrix.drawPixel(j+3, i+6, matrix.Color(0,230,0));
         } else if (pixel == 7) {
-          matrix.drawPixel(j+3, i, matrix.Color(140,40,230));
+          matrix.drawPixel(j+3, i+6, matrix.Color(140,40,230));
         }
       }
     }
@@ -617,8 +651,8 @@ class Tetris
     currLineX = lineX;
     prevLineX = 0;
 
-    currLineY = 15;
-    lineY = 15;
+    currLineY = 19;
+    lineY = 19;
     prevLineY = lineY;
 
     orientation = random(1,5);
@@ -670,13 +704,15 @@ class Tetris
       shapePointer = 0;      
     }
 
+    nextShape = shapeList[shapeOrder[shapePointer]];
+
     landed = false;
 
     detectCollision(true);
   }
 
   void checkTetris() {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 20; i++) {
       hasTetris = true;
       for (int j = 0; j < 10; j++) { 
         if (grid[i][j] == 0) {
@@ -698,7 +734,7 @@ class Tetris
   }
 
   void tetrisAnimation() {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 20; i++) {
       if (tetrisRows[i] == 1) {
         grid[i][tetrisAnimPointer] = 0;
       }
@@ -710,11 +746,11 @@ class Tetris
       tetrisMode = false;
       tetrisAnimPointer = 0;
 
-      for (int i = 0; i < 16; i++) {  
+      for (int i = 0; i < 20; i++) {  
         tetrisRows[i] = 0;
       }  
       
-      for (int i = 0; i < 16-tetrisEnd; i++) {
+      for (int i = 0; i < 20-tetrisEnd; i++) {
         for (int j = 0; j < 10; j++) {
           grid[tetrisStart+i][j] = grid[tetrisEnd+i][j];          
         }      
@@ -729,12 +765,12 @@ class Tetris
     rotSWstate = digitalRead(rotSW);  
 
     matrix.setFont(&Picopixel);
-    matrix.setRotation(2);
+    matrix.setRotation(0);
 
     matrix.setCursor(2, 4);
     matrix.setTextColor(matrix.Color(150,0,0));
     //void setTextWrap(boolean w);      
-    matrix.print("End");
+    matrix.print("Game Over");
 
     matrix.setCursor(7,9);
     matrix.print("r");
@@ -773,7 +809,8 @@ class Tetris
   void mainGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     yState = map(analogRead(potY), 0, 4095, 0, 100);
-    
+    encVal = getEncVal();
+
     if (!isOver) {
       if (!landed) {
         currLineY -= currFallSpeed * (millis()/1000.0 - tetrisTimeLastUpdated);
@@ -784,8 +821,8 @@ class Tetris
           lineY += 1;
         }
       
-      if (xState == 0 && lineX+width < 9 && !landed) {
-        if (prevXState != 0) {  
+      if ((xState == 0 || encVal-prevEncVal > 0) && lineX+width < 9 && !landed) {
+        if (prevXState != 0 || encVal != prevEncVal) {  
           lineX += 1;        
         } else {
           currLineX += 5 * (millis()/1000.0 - controllerTimeLastUpdated);    
@@ -795,8 +832,8 @@ class Tetris
             lineX = prevLineX;
           }
         }     
-      } else if (xState == 100 && lineX-leftAdj > 0 && !landed) {
-        if (prevXState != 100) {  
+      } else if ((xState == 100 || encVal-prevEncVal < 0) && lineX-leftAdj > 0 && !landed) {
+        if (prevXState != 100 || encVal != prevEncVal) {  
           lineX -= 1;        
         } else {
           currLineX -= 5 * (millis()/1000.0 - controllerTimeLastUpdated);
@@ -809,7 +846,7 @@ class Tetris
       }
       controllerTimeLastUpdated = millis()/1000.0;
 
-      if (yState == 100 && prevYState != 100 && !landed && lineY < 15) {
+      if (yState == 100 && prevYState != 100 && !landed && lineY < 19) {
         orientation += 1;
 
         if (currShape == "i" && lineY >= 13 && (orientation == 3 || orientation == 1)) {
@@ -878,10 +915,14 @@ class Tetris
       clearTop(false,true);
 
       drawGrid();
+      drawNextShape();
       tetrisTimeLastUpdated = millis()/1000.0;
 
-      matrix.drawLine(2, 0, 2, 15, matrix.Color(100,100,100));
-      matrix.drawLine(13, 0, 13, 15, matrix.Color(100,100,100));
+      matrix.drawLine(2, 5, 2, 26, matrix.Color(100,100,100));
+      matrix.drawLine(13, 5, 13, 26, matrix.Color(100,100,100));
+
+      matrix.drawLine(2, 5, 13, 5, matrix.Color(100,100,100));
+      matrix.drawLine(2, 26, 13, 26, matrix.Color(100,100,100));
       
       matrix.show();  
 
@@ -926,7 +967,8 @@ class Tetris
       prevYState = yState; 
       prevLineX = lineX;
       prevLineY = lineY;
-      prevOrientation = orientation;      
+      prevOrientation = orientation; 
+      prevEncVal = encVal;     
     } else {
       gameOver();
     }
@@ -956,7 +998,7 @@ class Tetris
 
   void clearTop(bool has_dot, bool is_empty) {
     for (int i = 0; i < 10; i++) {
-      if (grid[15][i] != 0) {
+      if (grid[19][i] != 0) {
         has_dot = true;
         break;        
       }
@@ -964,14 +1006,14 @@ class Tetris
 
     if (has_dot) {
       for (int i = 0; i < 10; i++) {
-        if (grid[14][i] != 0) {
+        if (grid[18][i] != 0) {
           is_empty = false;
         }
       }
 
       if (is_empty) {
         for (int i = 0; i < 10; i++) {
-          grid[15][i] = 0;
+          grid[19][i] = 0;
         }        
       }
     }
@@ -2345,8 +2387,14 @@ String menu() {
     Bird menuBird(7, 7, 0, 20, 7, 4);
     menuBird.drawBird();
   } else if (gameList[gamePointer] == "tetris") {
-    matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
-    matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
+
+    matrix.drawLine(2, 5, 2, 26, matrix.Color(100,100,100));
+    matrix.drawLine(13, 5, 13, 26, matrix.Color(100,100,100));
+
+    matrix.drawLine(2, 5, 13, 5, matrix.Color(100,100,100));
+    matrix.drawLine(2, 26, 13, 26, matrix.Color(100,100,100));
+    // matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
+    // matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
   }
 
   if (rotSWstate == 0) {
@@ -2366,19 +2414,255 @@ String menu() {
   return game;
 }
 
-void loop() {
-  if (game == "None") {
-    game = menu();
-    matrix.fillScreen(0);
-  } else if (game == "flappyBird") {
-    flapGame.initializeGame();
-  } else if (game == "tetris") {
-    tetris.mainGame();
+int getEncVal() {
+  int encVal;
+
+  encVal = myEnc.read();
+
+  encVal /= 4;
+
+  return encVal;
+}
+
+class SpaceInvaders
+{
+  // Class Member Variables
+  // These are initialized at startup
+  public:
+
+  int shipX;
+  int shipY;   
+
+  int xState;
+  int prevXState; 
+
+  int rotSWstate;
+  int prevState;
+
+  int blastX;
+  int blastY;
+  float currBlastY;
+  float blastVel;
+  float blastTimeLastUpdated;
+  float gameStartTime;
+  bool isBlast;
+  int blastCount;
+
+  float invaders[5][4][2] = {{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}},{{1,0},{1,0},{1,0},{1,0}}};
+  float invaderVel;
+  float invaderYVel; 
+
+  int xPositions[5] = {0,0,0,0,0};
+  float currXPositions[5] = {0.0,0.0,0.0,0.0,0.0};
+
+  int yPositions[5] = {16,16,16,16,16};
+  int prevYPositions[5] = {16,16,16,16,16};
+  float currYPositions[5] = {16.0,16.0,16.0,16.0,16.0};
+
+  int barriers[3] = {5,5,5};
+
+  SpaceInvaders()
+  {
+    shipX = 7;
+    shipY = 1;
+
+    blastX = -1;
+    blastY = shipY+2;
+    currBlastY = blastY;
+    blastVel = 32;
+    blastTimeLastUpdated = millis()/1000.0;
+    gameStartTime = millis()/1000.0;
+    isBlast = false;
+
+    xState = map(analogRead(potX), 0, 4095, 0, 100);
+    rotSWstate = digitalRead(rotSW);   
+    prevState = 1;
+
+    blastCount = 0; 
+
+    // invaders[4][2] = {{14,17},{11,17},{8,17},{5,17}}
+    // invaders[4][2] = {{9,17},{6,17},{3,17},{0,17}}
+
+    invaderVel = 1;
+    invaderYVel = -invaderVel;
   }
 
-  // if (!stop) {
-  //   tetris.mainGame();    
+  void drawShip() {
+    matrix.drawLine(shipX,shipY,shipX+2,shipY,matrix.Color(0,150,0));    
+    matrix.drawPixel(shipX+1,shipY+1,matrix.Color(0,150,0));
+  }
+
+  void drawInvaders() {
+    for (int i = 0; i < 5; i++) {
+      for (int j = 0; j < 4; j++) {
+        if (invaders[i][j][0] == 1) {
+          matrix.fillRect(j*3+xPositions[i],i+yPositions[i],2,2,matrix.Color(150,150,150));
+        } else if (invaders[i][j][0] == 2) {
+          if (millis()/1000.0 - invaders[i][j][1] < 500) {
+            matrix.fillRect(j*3+xPositions[i],i+yPositions[i],2,2,matrix.Color(236,0,0));            
+          } else if (millis()/1000.0 - invaders[i][j][1] < 1000) {
+            matrix.drawRect(j*3+xPositions[i]-1,i+yPositions[i]-1,4,4,matrix.Color(236,0,0));                        
+          } else if (millis()/1000.0 - invaders[i][j][1] < 1500) {
+            matrix.drawRect(j*3+xPositions[i]-1,i+yPositions[i]-1,4,4,matrix.Color(236,105,44)); 
+            invaders[i][j][0] = 0;                              
+          }
+        }
+      }
+    }
+  }
+
+  void drawBarriers() {
+    for (int i = 0; i < 3; i++) {
+      if (barriers[i] > 0) {
+        if (i == 0) {
+          matrix.fillRect(1, shipY+4, 3, 2, matrix.Color(0,150,0));
+        } else if (i == 1) {
+          matrix.fillRect(7, shipY+4, 2, 2, matrix.Color(0,150,0));          
+        } else {
+          matrix.fillRect(12, shipY+4, 3, 2, matrix.Color(0,150,0));          
+        }
+      }
+    }
+  }
+
+  void moveInvaders() {
+    for (int i = 0; i < 5; i++) {
+      if ((xPositions[i] == 5 && invaderVel > 0) || (xPositions[i] == 0 && invaderVel < 0)) {
+        currYPositions[i] += invaderYVel * (millis()/1000.0 - blastTimeLastUpdated);
+        yPositions[i] = round(currYPositions[i]);
+
+        if (prevYPositions[i] == yPositions[i]+1) {
+          currYPositions[i] = yPositions[i];
+          prevYPositions[i] = yPositions[i];
+          invaderVel *= -1;
+        }
+      } else {
+        currXPositions[0] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+        xPositions[0] = round(currXPositions[0]);
+        
+        if (millis()/1000.0-gameStartTime >= 100) {
+          currXPositions[1] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+          xPositions[1] = round(currXPositions[1]);
+        }    
+
+        if (millis()/1000.0-gameStartTime >= 200) {
+          currXPositions[2] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+          xPositions[2] = round(currXPositions[2]);
+        }
+
+        if (millis()/1000.0-gameStartTime >= 300) {
+          currXPositions[3] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+          xPositions[3] = round(currXPositions[3]);
+        }
+
+        if (millis()/1000.0-gameStartTime >= 400) {
+          currXPositions[4] += invaderVel * (millis()/1000.0 - blastTimeLastUpdated);
+          xPositions[4] = round(currXPositions[4]);
+        }        
+      }
+    }
+  }
+
+  void makeBlast() {
+    blastX = shipX+1;
+    blastY = shipY+2;  
+    isBlast = true;
+  }
+
+  void drawBlast() {
+    matrix.drawPixel(blastX,blastY,matrix.Color(230,250,230));
+    matrix.drawPixel(blastX,blastY-1,matrix.Color(130,170,170));
+    matrix.drawPixel(blastX,blastY-2,matrix.Color(50,140,140));
+
+  }
+
+  void blastCollision() {
+    if (blastY > 31) {
+      blastX = -1;
+      blastY = shipY+2;
+      currBlastY = blastY;
+      isBlast = false;
+    } else {
+      for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 4; j++) {
+          if (invaders[i][j][0] == 1) {
+            if (blastX >= j*3+xPositions[i] && blastX <= j*3+xPositions[i]+1 && blastY >= i+yPositions[i] && blastY <= i+yPositions[i]+1) {
+              blastX = -1;
+              blastY = shipY+2;
+              currBlastY = blastY;
+              isBlast = false;
+
+              invaders[i][j][0] = 2;       
+              invaders[i][j][1] = millis()/1000.0;             
+            }
+          }
+        }
+      }
+    }
+  }
+    
+  void moveBlast() { 
+    currBlastY += blastVel * (millis()/1000.0 - blastTimeLastUpdated);
+    blastY = round(currBlastY);
+    blastCollision();
+  }
+
+  void invaderBlast() {
+
+  }
+
+  void mainGame() {
+    xState = map(analogRead(potX), 0, 4095, 0, 100);
+    rotSWstate = digitalRead(rotSW);
+
+    if (xState == 100 && prevXState != 100) {
+      shipX -= 1;    
+    } else if (xState == 0 && prevXState != 0) {
+      shipX += 1;
+    }
+
+    if (rotSWstate == 0 && prevState == 1 && !isBlast) {
+      makeBlast();
+    }
+
+    moveInvaders();
+    drawInvaders();
+
+    drawBarriers();
+
+    drawShip();
+
+    if (isBlast) {
+      moveBlast();
+    }
+
+    if (isBlast) {
+      drawBlast();
+    }
+
+    blastTimeLastUpdated = millis()/1000.0;
+
+    matrix.show();
+    matrix.fillScreen(0);    
+
+    prevXState = xState;
+    prevState = rotSWstate;
+  }
+}
+
+spaceGame = SpaceInvaders();
+
+void loop() {
+  // if (game == "None") {
+  //   game = menu();
+  //   matrix.fillScreen(0);
+  // } else if (game == "flappyBird") {
+  //   flapGame.initializeGame();
+  // } else if (game == "tetris") {
+  //   tetris.mainGame();
   // }
+
+  spaceGame.mainGame();
 
   // if (rotSWstate == 0) {
   //   stop = true;
