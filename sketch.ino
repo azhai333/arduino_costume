@@ -62,7 +62,7 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
 void setup() {
   Serial.begin(9600);
   matrix.begin();
-  matrix.setBrightness(40);
+  matrix.setBrightness(20);
   matrix.show();
   pinMode(SW, INPUT_PULLUP);
   pinMode(potX, INPUT_PULLUP);
@@ -409,7 +409,7 @@ FlappyBird flapGame(6.5);
 
 int gamePointer = 0;
 
-String gameList[2] = { "flappyBird", "tetris" };
+String gameList[3] = { "flappyBird", "tetris", "invaders" };
 
 int prevXState = 50;
 
@@ -423,6 +423,15 @@ class Tetris
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
                      {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0}};  
+  
+  int menuGrid[20][10] = { {0,7,3,3,2,2,2,5,5,1},{7,7,0,3,3,0,2,5,5,1},{0,7,0,0,0,0,6,6,4,1},
+                     {0,0,0,0,0,6,6,0,4,1},{0,0,0,0,0,0,0,0,4,4},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0},
+                     {0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0}};  
+    
 
   int prevRow[10] = {0,0,0,0,0,0,0,0,0,0};
   int prevRow2[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -622,6 +631,29 @@ class Tetris
     }
   }
 
+  void drawMenu() {
+    for (int i = 0; i < 20; i++) {
+      for (int j = 0; j < 10; j++) {
+        int pixel = menuGrid[i][j];
+        if (pixel == 1) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(110,236,238));
+        } else if (pixel == 2) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(0,0,230));        
+        } else if (pixel == 3) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(230,0,0));
+        } else if (pixel == 4) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(238,167,53));
+        } else if (pixel == 5) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(240,240,80));
+        } else if (pixel == 6) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(0,230,0));
+        } else if (pixel == 7) {
+          matrix.drawPixel(j+3, i+6, matrix.Color(140,40,230));
+        }
+      }
+    }    
+  }
+
   void drawGrid() {
     for (int i = 0; i < 20; i++) {
       for (int j = 0; j < 10; j++) {
@@ -770,7 +802,7 @@ class Tetris
     matrix.setCursor(2, 4);
     matrix.setTextColor(matrix.Color(150,0,0));
     //void setTextWrap(boolean w);      
-    matrix.print("Game Over");
+    matrix.print("End");
 
     matrix.setCursor(7,9);
     matrix.print("r");
@@ -2362,58 +2394,6 @@ Tetris tetris;
 
 bool stop = false;
 
-String menu() {
-  game = "None";
-
-  rotSWstate = digitalRead(rotSW);  
-  xState = map(analogRead(potX), 0, 4095, 0, 100);
-
-  if (xState == 100 && prevXState != 100) {
-    gamePointer += 1;    
-  } else if (xState == 0 && prevXState != 0) {
-    gamePointer -= 1;
-  }
-
-  if (gamePointer > 1) {
-    gamePointer = 0;
-  } else if (gamePointer < 0) {
-    gamePointer = 1;
-  }
-
-  if (gameList[gamePointer] == "flappyBird") {
-    Pipe pipe(6, 11, 7, 4, matrix.Color(0,150,0));
-    pipe.drawPipe();
-
-    Bird menuBird(7, 7, 0, 20, 7, 4);
-    menuBird.drawBird();
-  } else if (gameList[gamePointer] == "tetris") {
-
-    matrix.drawLine(2, 5, 2, 26, matrix.Color(100,100,100));
-    matrix.drawLine(13, 5, 13, 26, matrix.Color(100,100,100));
-
-    matrix.drawLine(2, 5, 13, 5, matrix.Color(100,100,100));
-    matrix.drawLine(2, 26, 13, 26, matrix.Color(100,100,100));
-    // matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
-    // matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
-  }
-
-  if (rotSWstate == 0) {
-    game = gameList[gamePointer];
-  }
-
-  if (game == "flappyBird") {
-    flapGame.resetGame();
-  } else if (game == "tetris") {
-    tetris.resetTetris();
-  }
-
-  matrix.show();
-
-  prevXState = xState;
-
-  return game;
-}
-
 int getEncVal() {
   int encVal;
 
@@ -2459,12 +2439,12 @@ class SpaceInvaders
 
   int currTime;
 
-  float invaders[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
-                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+  float invaders[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{-0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{-0.02,-0.5}},
                             {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}}};
 
-  float invadersOrig[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
-                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},
+  float invadersOrig[5][5][2] = {{{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{-0.02,-0.5}},
+                            {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}},{{1,0},{1,0},{1,0},{1,0},{-0.02,-0.5}},
                             {{1,0},{1,0},{1,0},{1,0},{0.02,-0.5}}};
   
   
@@ -2476,8 +2456,8 @@ class SpaceInvaders
   float invaderVel;
   float invaderYVel; 
 
-  int xPositions[5] = {0,0,0,0,0};
-  float currXPositions[5] = {0.0,0.0,0.0,0.0,0.0};
+  int xPositions[5] = {0,5,0,5,0};
+  float currXPositions[5] = {0.0,5.0,0.0,5.0,0.0};
 
   int yPositions[5] = {16,16,16,16,16};
   int prevYPositions[5] = {16,16,16,16,16};
@@ -2719,6 +2699,20 @@ class SpaceInvaders
           playerBlasts[h][2] = playerBlasts[h][1];
         }
 
+        for (int i = 0; i < 3; i++) {
+          if (invaderBlasts[i][0] != -1) {
+            if (playerBlasts[h][0] == invaderBlasts[i][0] && playerBlasts[h][1] >= invaderBlasts[i][1]) {
+              playerBlasts[h][0] = -1;
+              playerBlasts[h][1] = shipY+2;
+              playerBlasts[h][2] = playerBlasts[h][1];
+
+              invaderBlasts[i][0] = -1;
+              invaderBlasts[i][1] = shipY+2;
+              invaderBlasts[i][2] = invaderBlasts[i][1];   
+            }     
+          }
+        }
+
         if (playerBlasts[h][1] >= shipY+4 && playerBlasts[h][1] <= shipY+5) {
           for (int i = 0; i < 3; i++) {
             if (barriers[i][0] > 0) {
@@ -2798,7 +2792,7 @@ class SpaceInvaders
         invaderBlasts[i][2] = invaderBlastY*3+yPositions[invaderBlastY];
       }
     }
-    fireTime = random(3,10)/10.0;
+    fireTime = random(5,10)/10.0;
     invadersTimeLastUpdated = millis()/1000.0;
   }
 
@@ -2911,6 +2905,7 @@ class SpaceInvaders
       resetInvaders();
     } else if (rotSWstate == 0 && triY1 == 13) {
       game = "None";
+      resetInvaders();
       delay(300);
     }
     
@@ -2948,11 +2943,19 @@ class SpaceInvaders
     }
 
     for (int i = 0; i < 5; i++) {
-      xPositions[i] = 0;
+      if (i == 1 || i == 3) {
+        xPositions[i] = 5;
+      } else {
+        xPositions[i] = 0;
+      }
     }
 
     for (int i = 0; i < 5; i++) {
-      currXPositions[i] = 0.0;
+      if (i == 1 || i == 3) {
+        currXPositions[i] = 5;
+      } else {
+        currXPositions[i] = 0;
+      }
     }
 
     for (int i = 0; i < 5; i++) {
@@ -3010,7 +3013,7 @@ class SpaceInvaders
     invaderBlastX = 0;
     invaderBlastY = 0;
 
-    fireTime = random(3,10)/10.0;
+    fireTime = random(5,10)/10.0;
     invadersTimeLastUpdated = millis()/1000.0;
 
     lives = 3;
@@ -3027,6 +3030,12 @@ class SpaceInvaders
         shipX -= 1;    
       } else if ((xState == 0 && prevXState != 0) || encVal-prevEncVal > 0) {
         shipX += 1;
+      }
+
+      if (shipX > 14) {
+        shipX = 14;
+      } else if (shipX < 1) {
+        shipX = 1;
       }
 
       if (rotSWstate == 0 && prevState == 1) {
@@ -3066,17 +3075,82 @@ class SpaceInvaders
 
 spaceGame = SpaceInvaders();
 
-void loop() {
-  // if (game == "None") {
-  //   game = menu();
-  //   matrix.fillScreen(0);
-  // } else if (game == "flappyBird") {
-  //   flapGame.initializeGame();
-  // } else if (game == "tetris") {
-  //   tetris.mainGame();
-  // }
+Tetris menuTetris;
 
-  spaceGame.mainGame();
+String menu() {
+  game = "None";
+
+  rotSWstate = digitalRead(rotSW);  
+  xState = map(analogRead(potX), 0, 4095, 0, 100);
+
+  if (xState == 100 && prevXState != 100) {
+    gamePointer += 1;    
+  } else if (xState == 0 && prevXState != 0) {
+    gamePointer -= 1;
+  }
+
+  if (gamePointer > 2) {
+    gamePointer = 0;
+  } else if (gamePointer < 0) {
+    gamePointer = 2;
+  }
+
+  if (gameList[gamePointer] == "flappyBird") {
+    Pipe pipe(6, 11, 7, 4, matrix.Color(0,150,0));
+    pipe.drawPipe();
+
+    Bird menuBird(7, 7, 0, 20, 7, 4);
+    menuBird.drawBird();
+  } else if (gameList[gamePointer] == "tetris") {
+
+    matrix.drawLine(2, 5, 2, 26, matrix.Color(100,100,100));
+    matrix.drawLine(13, 5, 13, 26, matrix.Color(100,100,100));
+
+    matrix.drawLine(2, 5, 13, 5, matrix.Color(100,100,100));
+    matrix.drawLine(2, 26, 13, 26, matrix.Color(100,100,100));
+
+    menuTetris.drawMenu();
+
+    // matrix.drawLine(3, 0, 3, 15, matrix.Color(100,100,100));
+    // matrix.drawLine(12, 0, 12, 15, matrix.Color(100,100,100));
+  } else if (gameList[gamePointer] == "invaders") {
+    spaceGame.drawShip();
+    spaceGame.drawInvaders();
+    spaceGame.drawBarriers();
+  }
+
+  if (rotSWstate == 0) {
+    game = gameList[gamePointer];
+  }
+
+  if (game == "flappyBird") {
+    flapGame.resetGame();
+  } else if (game == "tetris") {
+    tetris.resetTetris();
+  } else if (game == "invaders") {
+    spaceGame.resetInvaders();
+  }
+
+  matrix.show();
+
+  prevXState = xState;
+
+  return game;
+}
+
+void loop() {
+  if (game == "None") {
+    matrix.setRotation(2);
+    game = menu();
+    matrix.fillScreen(0);
+  } else if (game == "flappyBird") {
+    flapGame.initializeGame();
+  } else if (game == "tetris") {
+    tetris.mainGame();
+  } else if (game == "invaders") {
+    spaceGame.mainGame();
+  }
+
 
   // if (rotSWstate == 0) {
   //   stop = true;
