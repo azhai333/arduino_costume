@@ -32,27 +32,30 @@
 #include <Fonts/Picopixel.h>
 
 //Inputs:
-#define SW 32 //Joystick button
-#define potX 25 //oystick X
-#define potY 33 //Joystick Y
+#define SW 32 //Joystick button 32
+#define potX 25 //oystick X 25 
+#define potY 33 //Joystick Y 33
 
 //#define twist A1 //Potentiometer
 
-#define ASW 16
-#define BSW 17
-#define XSW 18
-#define YSW 19
+// #define BSW 17
+// #define XSW 18
+// #define YSW 19
 
-#define rotSW 17 //Rotary encoder button 14
+#define rSW 17 //Rotary encoder button 14
 //Initialize encoder on digital pins 2 (clock) and 3 (DT)
-Encoder myEnc(26, 27);
+Encoder rEnc(26, 27);
+
+#define lSW 1 //Rotary encoder button 16
+//Initialize encoder on digital pins 25,32
+Encoder lEnc(2, 3);
 
 #define PIN 13 //Neopixel matrix output
 //Define Matrix
 #define NUMROWS 16
 #define NUMCOLS 32
 
-
+// #define aSW 0
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
   NEO_MATRIX_TOP + NEO_MATRIX_LEFT +
@@ -62,11 +65,11 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
 void setup() {
   Serial.begin(9600);
   matrix.begin();
-  matrix.setBrightness(20);
+  matrix.setBrightness(40);
   matrix.show();
-  pinMode(SW, INPUT_PULLUP);
-  pinMode(potX, INPUT_PULLUP);
-  pinMode(potY, INPUT_PULLUP);
+  // pinMode(aSW, INPUT_PULLUP);
+  // pinMode(potX, INPUT_PULLUP);
+  // pinMode(potY, INPUT_PULLUP);
   //pinMode(twist, INPUT);
   delay(500);
 
@@ -160,9 +163,9 @@ class Bird
     birdTimeLastUpdated = millis()/1000.0;      
   }
 
-  void updateBirdPos(int rotSWstate, int prevState) {
+  void updateBirdPos(int rSWState, int prevState) {
   //Ensure that you have to release button and tap again to flap
-  if (rotSWstate == 0 && prevState == 1) {
+  if (rSWState == 0 && prevState == 1) {
     //Set upward velocity to positive value and reset current falling speed to base fall speed
     upSpeed = jumpSpeed;
     currFallSpeed = baseFallSpeed;
@@ -230,15 +233,18 @@ class FlappyBird
 
   //previous state of the switch, used to prevent holding the button to make the bird go up
   int prevState;
-  int rotSWstate;
+  int rSWState;
   int xState;
   int yState;
   
   bool startGame;  
   bool isOver;
 
+  int rEncVal;
+  int prevREncVal;
+
   FlappyBird(float pipeVel) {
-    rotSWstate = digitalRead(rotSW);
+    rSWState = digitalRead(rSW);
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     yState = map(analogRead(potY), 0, 4095, 0, 100);
     prevState = 1;
@@ -255,14 +261,17 @@ class FlappyBird
 
     startGame = false;
     isOver = false;
+
+    rEncVal = 0;
+    prevREncVal = 0;
   }
 
   void initializeGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     yState = map(analogRead(potY), 0, 4095, 0, 100);
-    rotSWstate = digitalRead(rotSW);
+    rSWState = digitalRead(rSW);
 
-    if (rotSWstate == 0) {
+    if (rSWState == 0) {
       startGame = true;
     }
 
@@ -304,7 +313,7 @@ class FlappyBird
     gameBird.upSpeed = 0;
     gameBird.currFallSpeed = gameBird.baseFallSpeed;
 
-    rotSWstate = digitalRead(rotSW);
+    rSWState = digitalRead(rSW);
     prevState = 1;
 
     matrix.setRotation(2);
@@ -322,6 +331,7 @@ class FlappyBird
   }
 
   void flapGameOver() {
+    rEncVal = getEncVal(false);
     if (gameBird.dotY > 1) {
       for (int i = 0; i < numPipes; i++) {
         pipes[i].drawPipe();
@@ -348,14 +358,14 @@ class FlappyBird
       matrix.setCursor(5,14);
       matrix.print("m");    
       
-      if (yState == 0 && triY1 == 8) {
+      if ((yState == 0 || rEncVal-prevREncVal > 0) && triY1 == 8) {
         triX1 = 4;
         triY1 = 13;
         triX2 = 3;
         triY2 = 12;
         triX3 = 3;
         triY3 = 14;
-      } else if (yState == 100 && triY1 == 13) {
+      } else if ((yState == 100 || rEncVal-prevREncVal < 0) && triY1 == 13) {
         triX1 = 6;
         triY1 = 8;
         triX2 = 5;
@@ -364,9 +374,9 @@ class FlappyBird
         triY3 = 9;
       }
 
-      if (rotSWstate == 0 && triY1 == 8) {
+      if (rSWState == 0 && triY1 == 8) {
         resetGame();
-      } else if (rotSWstate == 0 && triY1 == 13) {
+      } else if (rSWState == 0 && triY1 == 13) {
         game = "None";
         delay(300);
       }
@@ -376,11 +386,11 @@ class FlappyBird
       matrix.show();
       matrix.fillScreen(0);
     }
-    
+    prevREncVal = rEncVal;
   }
   
   void flappyBird() {
-    gameBird.updateBirdPos(rotSWstate, prevState);
+    gameBird.updateBirdPos(rSWState, prevState);
     gameBird.drawBird();
 
     movePipes();
@@ -388,7 +398,7 @@ class FlappyBird
     matrix.show();
 
     matrix.fillScreen(0);
-    prevState = rotSWstate;
+    prevState = rSWState;
 
     for (int i = 0; i < numPipes; i++) {
       if (pipes[i].checkCollision(gameBird.dotX, gameBird.dotY)) {
@@ -401,7 +411,7 @@ class FlappyBird
   }
 };
 
-int rotSWstate;
+int rSWState;
 int xState;
 int yState;
 
@@ -409,7 +419,7 @@ FlappyBird flapGame(6.5);
 
 int gamePointer = 0;
 
-String gameList[3] = { "flappyBird", "tetris", "invaders" };
+String gameList[4] = { "flappyBird", "tetris", "invaders", "sketch" };
 
 int prevXState = 50;
 
@@ -469,7 +479,7 @@ class Tetris
   int yState;
   int prevYState;
   
-  int encVal;
+  int rEncVal;
   int prevEncVal;
 
   int checked;
@@ -557,8 +567,8 @@ class Tetris
     prevXState = xState;
     prevYState = xState; 
 
-    encVal = getEncVal();
-    prevEncVal = encVal;
+    rEncVal = getEncVal(false);
+    prevEncVal = rEncVal;
 
     hasTetris = false;
     tetrisMode = false;
@@ -794,7 +804,7 @@ class Tetris
   }
 
   void gameOver() {
-    rotSWstate = digitalRead(rotSW);  
+    rSWState = digitalRead(rSW);  
 
     matrix.setFont(&Picopixel);
     matrix.setRotation(0);
@@ -809,14 +819,14 @@ class Tetris
     matrix.setCursor(5,14);
     matrix.print("m");    
     
-    if (yState == 0 && triY1 == 8) {
+    if ((yState == 0 || rEncVal-prevEncVal > 0) && triY1 == 8) {
       triX1 = 4;
       triY1 = 13;
       triX2 = 3;
       triY2 = 12;
       triX3 = 3;
       triY3 = 14;
-    } else if (yState == 100 && triY1 == 13) {
+    } else if ((yState == 100 || rEncVal-prevEncVal < 0) && triY1 == 13) {
       triX1 = 6;
       triY1 = 8;
       triX2 = 5;
@@ -825,9 +835,9 @@ class Tetris
       triY3 = 9;
     }
 
-    if (rotSWstate == 0 && triY1 == 8) {
+    if (rSWState == 0 && triY1 == 8) {
       resetTetris();
-    } else if (rotSWstate == 0 && triY1 == 13) {
+    } else if (rSWState == 0 && triY1 == 13) {
       game = "None";
       delay(300);
     }
@@ -841,7 +851,7 @@ class Tetris
   void mainGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
     yState = map(analogRead(potY), 0, 4095, 0, 100);
-    encVal = getEncVal();
+    rEncVal = getEncVal(false);
 
     if (!isOver) {
       if (!landed) {
@@ -851,10 +861,11 @@ class Tetris
 
         if (lineY < prevLineY-1) {
           lineY += 1;
+          currLineY = lineY;
         }
       
-      if ((xState == 0 || encVal-prevEncVal > 0) && lineX+width < 9 && !landed) {
-        if (prevXState != 0 || encVal != prevEncVal) {  
+      if ((xState == 0 || rEncVal-prevEncVal > 0) && lineX+width < 9 && !landed) {
+        if (prevXState != 0 || rEncVal != prevEncVal) {  
           lineX += 1;        
         } else {
           currLineX += 5 * (millis()/1000.0 - controllerTimeLastUpdated);    
@@ -864,8 +875,8 @@ class Tetris
             lineX = prevLineX;
           }
         }     
-      } else if ((xState == 100 || encVal-prevEncVal < 0) && lineX-leftAdj > 0 && !landed) {
-        if (prevXState != 100 || encVal != prevEncVal) {  
+      } else if ((xState == 100 || rEncVal-prevEncVal < 0) && lineX-leftAdj > 0 && !landed) {
+        if (prevXState != 100 || rEncVal != prevEncVal) {  
           lineX -= 1;        
         } else {
           currLineX -= 5 * (millis()/1000.0 - controllerTimeLastUpdated);
@@ -1000,10 +1011,10 @@ class Tetris
       prevLineX = lineX;
       prevLineY = lineY;
       prevOrientation = orientation; 
-      prevEncVal = encVal;     
     } else {
       gameOver();
     }
+    prevEncVal = rEncVal;     
   };
 
   void savePrevLines() {
@@ -2065,7 +2076,7 @@ class Tetris
         height = 3;
 
         if (lineY != prevLineY) {
-          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-1 < 0) {
+          if (grid[lineY-1][lineX+2] != 0 || grid[lineY-2][lineX+1] != 0 || lineY-2 < 0) {
             lineY += 1;
             landed = true;          
           }
@@ -2394,14 +2405,18 @@ Tetris tetris;
 
 bool stop = false;
 
-int getEncVal() {
-  int encVal;
+int getEncVal(bool isLeft) {
+  int rEncVal;
 
-  encVal = myEnc.read();
+  if (isLeft) {
+    rEncVal = lEnc.read();    
+  } else {
+    rEncVal = rEnc.read();    
+  }
 
-  encVal /= 4;
+  rEncVal /= 4;
 
-  return encVal;
+  return rEncVal;
 }
 
 class SpaceInvaders
@@ -2418,7 +2433,7 @@ class SpaceInvaders
 
   int yState;
 
-  int rotSWstate;
+  int rSWState;
   int prevState;
 
   // int blastX;
@@ -2465,7 +2480,7 @@ class SpaceInvaders
 
   float barriers[3][3] = {{5,0,0},{5,0,0},{5,0,0}};
 
-  int encVal;
+  int rEncVal;
   int prevEncVal;
 
   float fireTime;
@@ -2489,11 +2504,11 @@ class SpaceInvaders
     isBlast = false;
 
     xState = map(analogRead(potX), 0, 4095, 0, 100);
-    rotSWstate = digitalRead(rotSW);   
+    rSWState = digitalRead(rSW);   
     prevState = 1;
 
-    encVal = getEncVal();
-    prevEncVal = encVal;
+    rEncVal = getEncVal(false);
+    prevEncVal = rEncVal;
 
     blastCount = 0; 
 
@@ -2885,25 +2900,25 @@ class SpaceInvaders
     matrix.setCursor(5,14);
     matrix.print("m");    
     
-    if (yState == 0 && triY1 == 8) {
-      triX1 = 4;
-      triY1 = 13;
-      triX2 = 3;
-      triY2 = 12;
-      triX3 = 3;
-      triY3 = 14;
-    } else if (yState == 100 && triY1 == 13) {
-      triX1 = 6;
-      triY1 = 8;
-      triX2 = 5;
-      triY2 = 7;
-      triX3 = 5;
-      triY3 = 9;
-    }
+  if ((yState == 0 || rEncVal-prevEncVal > 0) && triY1 == 8) {
+    triX1 = 4;
+    triY1 = 13;
+    triX2 = 3;
+    triY2 = 12;
+    triX3 = 3;
+    triY3 = 14;
+  } else if ((yState == 100 || rEncVal-prevEncVal < 0) && triY1 == 13) {
+    triX1 = 6;
+    triY1 = 8;
+    triX2 = 5;
+    triY2 = 7;
+    triX3 = 5;
+    triY3 = 9;
+  }
 
-    if (rotSWstate == 0 && triY1 == 8) {
+    if (rSWState == 0 && triY1 == 8) {
       resetInvaders();
-    } else if (rotSWstate == 0 && triY1 == 13) {
+    } else if (rSWState == 0 && triY1 == 13) {
       game = "None";
       resetInvaders();
       delay(300);
@@ -2992,11 +3007,11 @@ class SpaceInvaders
     isBlast = false;
 
     xState = map(analogRead(potX), 0, 4095, 0, 100);
-    rotSWstate = digitalRead(rotSW);   
+    rSWState = digitalRead(rSW);   
     prevState = 1;
 
-    encVal = getEncVal();
-    prevEncVal = encVal;
+    rEncVal = getEncVal(false);
+    prevEncVal = rEncVal;
 
     blastCount = 0; 
 
@@ -3022,23 +3037,23 @@ class SpaceInvaders
 
   void mainGame() {
     xState = map(analogRead(potX), 0, 4095, 0, 100);
-    rotSWstate = digitalRead(rotSW);
-    encVal = getEncVal();
+    rSWState = digitalRead(rSW);
+    rEncVal = getEncVal(false);
 
     if (!isOver) {
-      if ((xState == 100 && prevXState != 100) || encVal-prevEncVal < 0) {
+      if ((xState == 100 && prevXState != 100) || rEncVal-prevEncVal < 0) {
         shipX -= 1;    
-      } else if ((xState == 0 && prevXState != 0) || encVal-prevEncVal > 0) {
+      } else if ((xState == 0 && prevXState != 0) || rEncVal-prevEncVal > 0) {
         shipX += 1;
       }
 
-      if (shipX > 14) {
-        shipX = 14;
-      } else if (shipX < 1) {
-        shipX = 1;
+      if (shipX > 13) {
+        shipX = 13;
+      } else if (shipX < 0) {
+        shipX = 0;
       }
 
-      if (rotSWstate == 0 && prevState == 1) {
+      if (rSWState == 0 && prevState == 1) {
         makeBlast();
       }
 
@@ -3063,13 +3078,13 @@ class SpaceInvaders
       matrix.fillScreen(0);    
 
       prevXState = xState;
-      prevState = rotSWstate;
-      prevEncVal = encVal;
+      prevState = rSWState;
 
       delay(65);
     } else {
       invadersOver();
     }
+    prevEncVal = rEncVal;
   }
 }
 
@@ -3077,22 +3092,209 @@ spaceGame = SpaceInvaders();
 
 Tetris menuTetris;
 
+int prevEncVal = 0;
+
+class EtchASketch
+{
+  public:
+    int rEncVal;
+    int prevREncVal;
+    int lEncVal;
+    int prevLEncVal;
+    int xPos;
+    int yPos;
+    int lSWState;
+    int prevLSWState;
+    int rSWState;
+    int prevRSWState;
+
+    int r1;
+    int r2;
+    int g1;
+    int g2;
+    int b1;
+    int b2;
+    int step;
+
+    // uint8_t red;
+    // uint8_t green;
+    // uint8_t blue;
+
+    int decColour;
+    float cycle;
+    float prevCycle;
+    unsigned int rgbColour[3] = {250,0,0};
+
+    bool colorMode;
+
+    EtchASketch() {
+      rEncVal = getEncVal(false);
+      prevREncVal = rEncVal;
+      lEncVal = getEncVal(true);
+      prevLEncVal = lEncVal;
+
+      lSWState = digitalRead(lSW);
+      prevLSWState = lSWState;
+      rSWState = digitalRead(rSW);
+      prevRSWState = rSWState;
+
+      xPos = 8;
+      yPos = 16;
+
+      decColour = 0;
+      cycle = 10;
+      prevCycle = cycle;
+
+      colorMode = false;
+  }
+
+  void getCol() {
+    int incColour = decColour == 2 ? 0 : decColour + 1;
+
+    // cross-fade the two colours.
+    if (cycle >= prevCycle+1) {
+      rgbColour[decColour] -= 10;
+      rgbColour[incColour] += 10;
+    } else if (cycle <= prevCycle-1) {
+      rgbColour[decColour] += 10;
+      rgbColour[incColour] -= 10;
+    }
+
+      
+      // setColourRgb(rgbColour[0], rgbColour[1], rgbColour[2]);
+  }
+
+  void resetSketch() {
+    matrix.fillScreen(0);
+    
+    xPos = 8;
+    yPos = 16;
+
+    decColour = 0;
+    cycle = 10;
+    prevCycle = cycle;
+
+    colorMode = false;
+
+    rgbColour[0] = 250;
+    rgbColour[1] = 0;
+    rgbColour[2] = 0;
+  }
+
+
+  void main() {
+    rEncVal = getEncVal(false);
+    lEncVal = getEncVal(true);
+
+    lSWState = digitalRead(lSW);
+    rSWState = digitalRead(rSW);
+
+    if (rSWState == 0 && prevRSWState == 1) {
+      if (colorMode) {
+        colorMode = false;
+      } else {
+        colorMode = true;
+      }
+    }
+
+    if (lSWState == 0 && prevLSWState == 1) {
+      resetSketch();
+    }
+
+    if (rEncVal-prevREncVal < 0) {
+      if (!colorMode) {
+        yPos += 1;
+      } else {
+        cycle += 10;
+      }
+    } else if (rEncVal-prevREncVal > 0) {
+      if (!colorMode) {
+        yPos -= 1;
+      } else {
+        cycle -= 10;
+      }
+    }
+
+    if (cycle > 250 && prevCycle == 250) {
+      cycle = 0;
+      decColour += 1;
+    } else if (cycle < 0 && prevCycle == 0) {
+      cycle = 250;
+      decColour -= 1;
+    }
+
+    if (decColour > 2) {
+      decColour = 0;
+    } else if (decColour < 0) {
+      decColour = 2;      
+    }
+
+    if (yPos > 31) {
+      yPos = 31;
+    } else if (yPos < 0) {
+      yPos = 0;
+    }
+
+    if (step > 30) {
+      step = 0;
+    } else if (step < 0) {
+      step = 30;
+    }
+    
+    Serial.print(decColour);
+    Serial.print(" ");
+    Serial.println(cycle);
+
+    if (lEncVal-prevLEncVal < 0) {
+      xPos += 1;
+    } else if (lEncVal-prevLEncVal > 0) {
+      xPos -= 1;
+    }
+
+    if (xPos > 15) {
+      xPos = 15;
+    } else if (xPos < 0) {
+      xPos = 0;
+    }
+
+    // red = getCol(0);
+    // green = getCol(1);
+    // blue = getCol(2);
+
+    getCol();
+
+    matrix.drawPixel(xPos,yPos,matrix.Color(rgbColour[0],rgbColour[1],rgbColour[2]));
+
+    matrix.show();
+    delay(30);
+
+    prevREncVal = rEncVal;
+    prevLEncVal = lEncVal;
+    prevLSWState = lSWState;
+    prevRSWState = rSWState;
+    prevCycle = cycle;
+  }    
+};
+
+EtchASketch sketch;
+
 String menu() {
   game = "None";
 
-  rotSWstate = digitalRead(rotSW);  
+  rSWState = digitalRead(rSW);  
   xState = map(analogRead(potX), 0, 4095, 0, 100);
+  int rEncVal = getEncVal(false);
 
-  if (xState == 100 && prevXState != 100) {
+  if (xState == 100 && prevXState != 100 || rEncVal-prevEncVal < 0) {
     gamePointer += 1;    
-  } else if (xState == 0 && prevXState != 0) {
+  } else if (xState == 0 && prevXState != 0 || rEncVal-prevEncVal > 0) {
     gamePointer -= 1;
   }
 
-  if (gamePointer > 2) {
+  if (gamePointer > 3) {
     gamePointer = 0;
   } else if (gamePointer < 0) {
-    gamePointer = 2;
+    gamePointer = 3;
   }
 
   if (gameList[gamePointer] == "flappyBird") {
@@ -3117,9 +3319,17 @@ String menu() {
     spaceGame.drawShip();
     spaceGame.drawInvaders();
     spaceGame.drawBarriers();
+  } else if (gameList[gamePointer] == "sketch") {
+    matrix.drawLine(3,7,12,7, matrix.Color(170,170,0));
+    matrix.drawLine(3,7,3,13, matrix.Color(170,170,0));
+    matrix.drawLine(12,7,12,13, matrix.Color(170,170,0));
+
+    matrix.drawLine(10,17,10,21, matrix.Color(170,170,0));
+
+    matrix.drawLine(5,17,5,21, matrix.Color(170,170,0));
   }
 
-  if (rotSWstate == 0) {
+  if (rSWState == 0) {
     game = gameList[gamePointer];
   }
 
@@ -3129,11 +3339,16 @@ String menu() {
     tetris.resetTetris();
   } else if (game == "invaders") {
     spaceGame.resetInvaders();
+  } else if (game == "sketch") {
+    sketch.resetSketch();
+    delay(100);
   }
 
   matrix.show();
 
   prevXState = xState;
+
+  prevEncVal = rEncVal;
 
   return game;
 }
@@ -3149,11 +3364,13 @@ void loop() {
     tetris.mainGame();
   } else if (game == "invaders") {
     spaceGame.mainGame();
+  } else if (game == "sketch") {
+    sketch.main();
   }
 
 
-  // if (rotSWstate == 0) {
+
+  // if (rSWState == 0) {
   //   stop = true;
   // }
 }
-
