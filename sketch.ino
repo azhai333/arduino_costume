@@ -55,6 +55,13 @@ Encoder lEnc(2, 3);
 #define NUMROWS 16
 #define NUMCOLS 32
 
+#define LED_PIN 1
+
+// How many NeoPixels are attached to the Arduino?
+#define LED_COUNT 512
+
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 // #define aSW 0
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(NUMROWS, NUMCOLS, PIN,
@@ -67,6 +74,10 @@ void setup() {
   matrix.begin();
   matrix.setBrightness(40);
   matrix.show();
+
+  strip.begin();
+  strip.show();
+  strip.setBrightness(30); 
   // pinMode(aSW, INPUT_PULLUP);
   // pinMode(potX, INPUT_PULLUP);
   // pinMode(potY, INPUT_PULLUP);
@@ -3352,6 +3363,74 @@ String menu() {
 
   return game;
 }
+
+// //max before activating arm
+// int plusRowMax1[6] = {0,0,0,0,0,0};
+// int minusRowMax1[6] = {0,0,0,0,0,0};
+
+// //max when reaching back
+// int plusRowMax2[6] = {0,0,0,0,0,0};
+// int minusRowMax2[6] = {0,0,0,0,0,0};
+
+// int plusRows[6][3] = {{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16}};
+// int minusRows[6][3] = {{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16},{0,-8,-16}};
+
+// int plusArm[6][3][2] = {{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}};
+// int minusArm[6][3[2] = {{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}},{{0,1},{-8,1},{-16,1}};
+
+// int plusArmMax[6] = {0,0,0,0,0,0};
+// int minusArmMax[6] = {0,0,0,0,0,0};
+
+// bool isPlusArm = false;
+// bool isMinusArm = false;
+
+// void pulseAnimation() {
+//   for (int i = 0; i < 6; i++) {
+//     for (int j = 0; i < 3; i++) {
+//       if (plusRows[i][j][0] == 0) {
+//         plusRows[i][j][0] = actualVal;
+//       } 
+
+//       if (minusRows[i][j][0] == 0) {
+//         minusRows[i][j][0] = actualVal;
+//       } 
+
+//       if (plusRows[i][j][0] >= 0) {
+//         strip.setPixelColor(plusRows[i][j][0],strip.Color(150,0,0));
+//       }
+
+//       if (minusRows[i][j][0] >= 0) {
+//         strip.setPixelColor(minusRows[i][j][0],strip.Color(150,0,0));
+//       }
+      
+//       plusRows[i][j][0] += plusRows[i][j][1];
+//       minusRows[i][j][0] += minusRows[i][j][1];
+
+//       if (plusRows[i][j] >= plusRowMax1[i] && !isPlusArm) {
+//         // plusRows[i][j] = plusArm[i][j];
+//         isPlusArm = true;
+//       } else if (plusRows[i][j] >= plusRowMax1[i]) {
+//         plusRows[i][j] = -16;
+//       }
+
+//       if (minusRows[i][j] <= minusRowMax1[i] && !isMinusArm) {
+//         // minusRows[i][j] = minusArm[i][j];
+//         isMinusArm = true;
+//       } else if (minusRows[i][j] >= minusRowMax1[i]) {
+//         minusRows[i][j] = -16;
+//       }
+//     }
+//   }
+
+//   if (isPlusArm) {
+//     if (plusArm[i][j] >= 0) {
+//       strip.setPixelColor(plusRows[i][j],strip.Color(150,0,0));
+//     }
+//   }
+
+//   strip.show();
+//   strip.clear();
+// }
 
 void loop() {
   if (game == "None") {
